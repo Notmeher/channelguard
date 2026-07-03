@@ -19,9 +19,9 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".env"
 
 
 class ModelCfg(BaseModel):
-    provider: Literal["azure_openai", "anthropic", "ollama"]
+    provider: Literal["azure_openai", "anthropic"]
     deployment: str | None = None   # Azure only
-    model: str | None = None        # Anthropic / Ollama
+    model: str | None = None        # Anthropic
     temperature: float = 0.0
     max_tokens: int = 1024
 
@@ -35,7 +35,6 @@ class ModelsCfg(BaseModel):
     verifier: VerifierModelCfg
     judge_hallucination: ModelCfg
     judge_consistency: ModelCfg
-    weak_model: ModelCfg
 
 
 # --- Component configs --------------------------------------------------------

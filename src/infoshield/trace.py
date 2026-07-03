@@ -36,7 +36,7 @@ class LLMCall(BaseModel):
 
     call_id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
     role: str                       # "planner" | "worker" | "verifier" | "judge" | ...
-    provider: str                   # "azure_openai" | "anthropic" | "ollama"
+    provider: str                   # "azure_openai" | "anthropic"
     model: str
     prompt_tokens: int = 0
     completion_tokens: int = 0

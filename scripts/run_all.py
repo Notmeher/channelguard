@@ -26,7 +26,6 @@ ORDER = [
     "run_beta_sweep",
     "run_multiframework",
     "run_encoder_comparison",
-    "run_weak_model",
     "run_phrase_bank_ablation",
 ]
 

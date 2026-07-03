@@ -29,8 +29,7 @@ This is the single source of truth for "what's done, what's left, and how to run
 | adaptive (paraphrase attack) | 0/180 | worst-case rebuttal |
 | multi_framework | 0/180 | LangGraph portability demo |
 | phrase_bank_ablation | 0/90 | bank-size robustness |
-| weak_model (Llama-3.1-8B) | 0/300 | requires Ollama; appendix table |
-| injecagent | 0/540 | HF dataset config flaky; may need manual patch |
+| `injecagent` | 0/540 | HF dataset config flaky; may need manual patch |
 | advbench | 0/1800 | refusal-only benchmark |
 
 ### Known issues to solve first (see §6)
@@ -188,7 +187,6 @@ python scripts\run_beta_sweep.py                 # 6 betas x 30 = 180
 python scripts\run_multiframework.py             # 2 x 3 atk x 30 = 180
 python scripts\run_encoder_comparison.py         # 2 x 5 x 30 = 300 (local + Azure encoder)
 python scripts\run_phrase_bank_ablation.py       # 3 sizes x 30 = 90
-python scripts\run_weak_model.py                 # needs Ollama; skipped if not up
 python scripts\run_injecagent.py                 # dataset flaky; may fail on load
 ```
 
@@ -221,15 +219,6 @@ python scripts\run_all.py
 ```
 
 **Cost ~$1.5–2.5k, ~1-2 days.** Bump `pipeline.parallel_samples` in `config.yaml` to `16` if your API tier allows.
-
-### 5.4 Optional: enable Ollama for the weak-model appendix
-
-```powershell
-# Install Ollama from https://ollama.com/
-ollama pull llama3.1:8b-instruct-q4_K_M
-ollama serve                        # runs on http://localhost:11434
-python scripts\run_weak_model.py    # now finds Ollama, runs the appendix
-```
 
 ---
 

@@ -42,7 +42,6 @@ def build_pipeline(
     ib_gates = ib_gates or {}
 
     # Provider-agnostic clients: dispatch based on cfg.models.<role>.provider.
-    # Lets the weak-model appendix swap gpt-5 for Ollama purely via config.
     agent_client = build_chat_client(cfg.models.agent)
     verifier_client = build_chat_client(cfg.models.verifier)
 

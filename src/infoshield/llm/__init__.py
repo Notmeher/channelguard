@@ -6,13 +6,11 @@ from typing import Any, Protocol
 from infoshield.llm.anthropic import AnthropicClient
 from infoshield.llm.azure_embedding import AzureEmbeddingClient
 from infoshield.llm.azure_openai import AzureOpenAIClient
-from infoshield.llm.ollama import OllamaClient
 
 __all__ = [
     "AzureOpenAIClient",
     "AnthropicClient",
     "AzureEmbeddingClient",
-    "OllamaClient",
     "ChatClient",
     "build_chat_client",
 ]
@@ -29,8 +27,8 @@ def build_chat_client(model_cfg) -> ChatClient:
     """Dispatch to the correct provider client based on `model_cfg.provider`.
 
     `model_cfg` is a `ModelCfg` (or subclass) from `infoshield.config`. Used by
-    `build_pipeline` so the agent role can be swapped between gpt-5 (Azure),
-    Claude (Anthropic), or Llama-3.1 (Ollama) purely via config.
+    `build_pipeline` so any agent role can be swapped between gpt-5 (Azure) and
+    Claude (Anthropic) purely via config.
     """
     provider = model_cfg.provider
     if provider == "azure_openai":
@@ -45,14 +43,6 @@ def build_chat_client(model_cfg) -> ChatClient:
         if not model_cfg.model:
             raise ValueError("anthropic provider requires `model`")
         return AnthropicClient(
-            model=model_cfg.model,
-            temperature=model_cfg.temperature,
-            max_tokens=model_cfg.max_tokens,
-        )
-    if provider == "ollama":
-        if not model_cfg.model:
-            raise ValueError("ollama provider requires `model`")
-        return OllamaClient(
             model=model_cfg.model,
             temperature=model_cfg.temperature,
             max_tokens=model_cfg.max_tokens,

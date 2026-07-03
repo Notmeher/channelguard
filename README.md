@@ -112,7 +112,6 @@ Fig 4 (architecture diagram) is drawn manually in draw.io / Excalidraw and expor
 | `beta_sweep` | 6 β | 1 | 100 | 1 | ~$60 |
 | `multi_framework` | 2 | 3 | 100 | 3 | ~$150 |
 | `encoder_comparison` | 2 | 5 | 100 | 3 | ~$200 (embed ~$0.40; rest is agents) |
-| `weak_model` | 2 | 5 | 100 | 3 | free (local Ollama) |
 | `phrase_bank_ablation` | 3 | 1 | 100 | 3 | ~$150 |
 
 **Total budget: ~$2.5–4.5k API cost, ~14–20 days wall-clock (8-way parallel).**
@@ -135,4 +134,3 @@ Fig 4 (architecture diagram) is drawn manually in draw.io / Excalidraw and expor
 | Uncertainty-aware Verifier (5-sample MC) | claude-sonnet-4-5 |
 | Judge — hallucination | claude-opus |
 | Judge — multi-step consistency | claude-sonnet-4-5 |
-| Weak-model appendix | Llama-3.1-8B via Ollama (optional; skips if Ollama down) |

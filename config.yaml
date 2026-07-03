@@ -32,12 +32,6 @@ models:
     temperature: 0.0
     max_tokens: 256
 
-  weak_model:                # appendix cross-model generalization
-    provider: ollama
-    model: llama3.1:8b-instruct-q4_K_M
-    temperature: 0.0
-    max_tokens: 1024
-
 # --- IB gate embedding --------------------------------------------------------
 # provider: local (sentence-transformers, free, offline) or azure (Azure OpenAI)
 embedding:
@@ -103,10 +97,6 @@ experiments:
     n_samples: 30
     seeds: [0]
     frameworks: [autogen, crewai]
-  weak_model:
-    dataset: hotpot_qa
-    n_samples: 30
-    seeds: [0]
   phrase_bank_ablation:
     dataset: hotpot_qa
     n_samples: 30
