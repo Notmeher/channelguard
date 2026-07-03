@@ -46,22 +46,28 @@ Hf_api_key=hf_...                 # for HuggingFace dataset + MiniLM downloads
 
 ## Running the experiments
 
-There is exactly **one entry point** for running experiments and producing
-results: `scripts/run_final.py`.
+The main entry point is `scripts/run_final.py`; four supporting scripts
+extend the matrix along different axes.
 
 ```bash
 # See what would run + estimated cost (no API calls)
 python scripts/run_final.py --dry-run
 
-# Run all steps (resumes any completed cells from disk)
+# Run all main-experiment steps (resumes any completed cells from disk)
 python scripts/run_final.py
 
 # Only regenerate the report from traces already on disk
 python scripts/run_final.py --report-only
+
+# Optional add-ons (each auto-refreshes FINAL.md at the end):
+python scripts/run_baselines.py         # ibprotector + llm_guard + perplexity_filter (~\$9 at n=6)
+python scripts/run_missing_attacks.py   # memory + reasoning_state + consensus (~\$9 at n=6)
+python scripts/run_judges.py            # LLM-judge Cohen's \u03ba on borderline traces (~\$4 for n=30)
+python scripts/analyze_gates.py         # ROC/AUC + threshold sweep (free, disk-only)
 ```
 
-Wall-clock: **~20 min** at `pipeline.parallel_samples=8`.
-Cost: **~$25** in gpt-5 + Claude Sonnet API calls (skipping ~40 already-cached cells).
+Wall-clock: **~20 min** for `run_final.py` at `pipeline.parallel_samples=8`.
+Cumulative spend to produce the current 499-trace artifact: **~\$79**.
 
 Output goes to [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md).
 
@@ -72,13 +78,18 @@ Output goes to [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md).
 | [config.yaml](config.yaml) | Single source of truth: models, β, θ, seeds, sample counts |
 | `.env` | API keys (git-ignored) |
 | `src/infoshield/` | Library code — pipeline, IB layer, agents, attacks, baselines, metrics |
-| [scripts/run_final.py](scripts/run_final.py) | Experiment orchestrator (only entry point) |
+| [scripts/run_final.py](scripts/run_final.py) | Main experiment orchestrator + FINAL.md writer |
+| [scripts/run_baselines.py](scripts/run_baselines.py) | Adds `ibprotector` / `llm_guard` / `perplexity_filter` rows to the main table |
+| [scripts/run_missing_attacks.py](scripts/run_missing_attacks.py) | Runs `memory_poisoning` / `reasoning_state_injection` / `consensus_collapse` |
+| [scripts/run_judges.py](scripts/run_judges.py) | LLM-judge eval: hallucination + consistency + two-judge Cohen's κ |
+| [scripts/analyze_gates.py](scripts/analyze_gates.py) | ROC/AUC per gate + threshold sensitivity (from existing traces, \$0) |
 | [scripts/aggregate_results.py](scripts/aggregate_results.py) | Walks `results/` → paper artifacts |
 | [scripts/consolidate.py](scripts/consolidate.py) | Aggregator + figures → `paper/deliverable/` |
-| `figures/` | matplotlib scripts consuming `paper/figures/*.csv` |
+| `figures/` | matplotlib scripts consuming `paper/figures/*.csv`; `fig7_sankey_attribution.py` renders the attribution flow |
 | `results/` | One JSON per pipeline sample (git-ignored, regenerable) |
 | `tests/` | 56 offline + 8 network tests |
-| [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) | Comprehensive research artifact |
+| [INFOSHIELD.md](INFOSHIELD.md) | ~1070-line research write-up (single-doc paper draft) |
+| [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) | Auto-generated headline tables — single source of truth for every number |
 
 ## Pipeline architecture
 
@@ -107,9 +118,10 @@ Synthesizer (gpt-5) + triple filter    │
 Final answer  OR  refusal ─────────────┘
 ```
 
-- **IB gate mechanism**: per-sentence cosine similarity against a 50-phrase
-  adversarial bank. `risk ≥ threshold` → BLOCK; `compress_ratio * threshold ≤
-  risk < threshold` → COMPRESS (first N sentences); else PASS.
+- **IB gate mechanism**: per-sentence cosine similarity against a 20-phrase
+  adversarial bank (default; `phrase_bank_size` in [config.yaml](config.yaml)).
+  `risk ≥ threshold` → BLOCK; `compress_ratio * threshold ≤ risk < threshold`
+  → COMPRESS (first N sentences); else PASS.
 - **Verifier**: 5-sample Monte Carlo scoring at temperature=1.0. Flags unsafe
   (`mean < 0.5`) and uncertain (`std > 0.3`).
 - **Synthesizer triple filter**: worker output must satisfy IB-5 gate AND
@@ -138,9 +150,16 @@ See [src/infoshield/ib/layer.py](src/infoshield/ib/layer.py) and
 
 ## Results
 
-See [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) for the full report
-including attack attribution, per-layer ablation, β Pareto, and efficiency.
+See [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) for the full
+auto-generated report, and [INFOSHIELD.md](INFOSHIELD.md) for the full
+research write-up (motivation, design, related work, discussion, ethics).
 
-**One-line summary**: INFOSHIELD reduces `prompt_injection_strong` ASR by 33 %
-(0.300 → 0.200) and provides deterministic 100 % blocking on `tool_poisoning`
-via IB-3, at no cost to GSM8K reasoning accuracy (+6.7 pp CTCA).
+**One-line summary** (over **499 traces**, ~\$79 total spend, 6 attack
+families, 5 systems): INFOSHIELD reduces `prompt_injection_strong` ASR by
+33 % (0.300 → 0.200) and provides **two uncontested deterministic wins** —
+it blocks **30/30 `tool_poisoning`** attempts at IB-3 and **6/6
+`memory_poisoning`** attempts at IB-3-mem, whereas undefended relies on
+Azure's stochastic filter for both. GSM8K reasoning accuracy is preserved
+(+6.7 pp CTCA), and INFOSHIELD runs **~7× faster** than undefended on
+adversarial workloads because IB gates short-circuit the pipeline before
+spending expensive gpt-5 / Claude calls.
