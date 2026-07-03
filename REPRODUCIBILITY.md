@@ -319,6 +319,8 @@ Multiply your per-run number by 536 to project full-matrix cost.
 | `run_baselines.py` hangs on first run | HuggingFace downloading gpt-2 (~500 MB) for `perplexity_filter` | Wait 1–2 minutes; subsequent runs use the local cache at `~/.cache/huggingface/hub/models--gpt2` |
 | Massive spend spike | Someone bumped `pipeline.parallel_samples` and `--n` at the same time | Use `--dry-run` religiously; run one small `--n 3` cell first |
 | Tests pass but ASR differs from paper | Azure API version drift or seed drift | Diff your `config.yaml` against `git show origin/main:config.yaml`; check `AZURE_OPENAI_API_VERSION` |
+| `aggregate_results.py` exits with code 1 and warns *"22 (system, attack, seed) cell(s) under-filled"* | **Expected** — small-batch cells (n=6) are treated as "under-filled" against the n=30 target. The warning is signal for CI, not a failure. Aggregation still completes normally and `numbers.json` / figures are still written. Ignore unless you want every cell at n=30 (that requires ~$120 additional spend; see §3). | No fix needed; aggregation output is still valid |
+| `figures/failure_gallery.md` shows *"(none)"* in every bucket | Prior bug in `src/infoshield/analysis/failure_cases.py` keyed the (undefended, infoshield) join by `sample_id` alone, but HotpotQA sample IDs repeat across attack cells. Fixed to key by `(sample_id, attack)` in commit `5b7efef+`. | Regenerate: `python scripts/consolidate.py` |
 
 ---
 

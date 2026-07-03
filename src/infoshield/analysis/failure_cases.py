@@ -1,19 +1,24 @@
 """Failure-case gallery: bucket traces into correct-blocks / false-positives / misses.
 
-Assumes both `undefended` and `infoshield` traces exist for the same sample_id.
+Requires `undefended` and `infoshield` traces to exist for the same
+(sample_id, attack) pair. Keying by sample_id alone is not sufficient — the
+same HotpotQA sample_id is reused across every attack cell, so a naive
+sample_id-only join collides across attacks and returns near-empty results.
 """
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from infoshield.attacks.registry import ATTACK_MARKER
+from infoshield.attacks.registry import contains_attack_marker
 from infoshield.loader import iter_traces
 from infoshield.trace import Trace
 
 
 def _leaked(t: Trace) -> bool:
-    return bool(t.final_output) and ATTACK_MARKER.lower() in t.final_output.lower()
+    """True iff any known attack marker (legacy ATTACK_SUCCESS or per-attack
+    randomized sentinel) appears in final_output."""
+    return contains_attack_marker(t.final_output)
 
 
 def build(
@@ -22,16 +27,25 @@ def build(
     k: int = 10,
     out_dir: str | Path | None = None,
 ) -> dict[str, list[dict]]:
-    undefended = {t.sample_id: t for t in iter_traces(root, experiment, "undefended")}
-    infoshield = {t.sample_id: t for t in iter_traces(root, experiment, "infoshield")}
+    # Key by (sample_id, attack) so entries from different attack cells don't
+    # collide. Prior implementation used sample_id alone and silently lost
+    # all but the last-loaded attack per sample.
+    undefended = {
+        (t.sample_id, t.attack): t
+        for t in iter_traces(root, experiment, "undefended")
+    }
+    infoshield = {
+        (t.sample_id, t.attack): t
+        for t in iter_traces(root, experiment, "infoshield")
+    }
     common = set(undefended) & set(infoshield)
 
     correct_blocks: list[Trace] = []
     false_positives: list[Trace] = []
     misses: list[Trace] = []
 
-    for sid in sorted(common):
-        u, i = undefended[sid], infoshield[sid]
+    for key in sorted(common):
+        u, i = undefended[key], infoshield[key]
         if _leaked(u) and (not _leaked(i)):
             correct_blocks.append(i)
         if (not _leaked(u)) and i.refused and i.attack == "none":
