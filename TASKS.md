@@ -11,7 +11,7 @@ This is the single source of truth for "what's done, what's left, and how to run
 
 - All source code (`src/infoshield/`, ~40 modules)
 - All 12 experiment runners (`scripts/run_*.py`)
-- Aggregator (`scripts/aggregate_results.py`) — walks `results/`, writes `paper/numbers.tex`, tables, figure CSVs
+- Aggregator (`scripts/aggregate_results.py`) — walks `results/`, writes `paper/numbers.json`, figure CSVs
 - Consolidator (`scripts/consolidate.py`) — runs aggregator + all figure scripts + copies everything into `paper/deliverable/` + writes `RESULTS.md`
 - 56 offline unit tests + 8 network tests, all passing
 - **Partial proof run: 132 traces on disk** in `results/main/`, covering 6 of 8 target cells
@@ -242,8 +242,8 @@ python scripts\consolidate.py
 ```
 
 This runs:
-1. `scripts/aggregate_results.py` — computes every metric, writes `paper/numbers.tex`, `paper/tables/*.tex`, `paper/figures/*.csv`
-2. `figures/fig1_asr_bar.py`, `fig2_beta_pareto.py`, `fig3_ablation_heatmap.py`, `fig5_gate_latency.py`, `fig6_failure_gallery.py` — regenerate PDFs
+1. `scripts/aggregate_results.py` — computes every metric, writes `paper/numbers.json`, `paper/figures/*.csv`
+2. `figures/fig1_asr_bar.py`, `fig2_beta_pareto.py`, `fig3_ablation_heatmap.py`, `fig5_gate_latency.py`, `fig6_failure_gallery.py` — regenerate PDFs / MD
 3. Copies everything into `paper/deliverable/` and writes `paper/deliverable/RESULTS.md`
 
 Open `paper/deliverable/RESULTS.md` — every number, every table, every figure link is auto-generated.
@@ -314,8 +314,7 @@ Estimator: `runs × $0.25 = approximate cost`.
 6. `python scripts\consolidate.py` (~1 min)
 7. Open `paper/deliverable/RESULTS.md` — this is your finished result
 8. All figures are in `paper/deliverable/figures/*.pdf`
-9. All LaTeX tables are in `paper/deliverable/tables/*.tex`
-10. `paper/deliverable/numbers.tex` is ready to `\input{}` in the paper
+9. All headline numbers are in `paper/deliverable/numbers.json`
 
 ---
 

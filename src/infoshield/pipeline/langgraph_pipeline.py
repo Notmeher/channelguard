@@ -15,7 +15,7 @@ from infoshield.agents.synthesizer import make_synthesizer
 from infoshield.agents.verifier import make_verifier
 from infoshield.agents.worker import make_workers
 from infoshield.config import Config
-from infoshield.llm import AnthropicClient, AzureOpenAIClient
+from infoshield.llm import build_chat_client
 from infoshield.memory.controller import MemoryController
 from infoshield.pipeline.state import PipelineState, new_state
 from infoshield.trace import Trace
@@ -41,16 +41,10 @@ def build_pipeline(
     """
     ib_gates = ib_gates or {}
 
-    agent_client = AzureOpenAIClient(
-        deployment=cfg.models.agent.deployment,
-        temperature=cfg.models.agent.temperature,
-        max_tokens=cfg.models.agent.max_tokens,
-    )
-    verifier_client = AnthropicClient(
-        model=cfg.models.verifier.model,
-        temperature=cfg.models.verifier.temperature,
-        max_tokens=cfg.models.verifier.max_tokens,
-    )
+    # Provider-agnostic clients: dispatch based on cfg.models.<role>.provider.
+    # Lets the weak-model appendix swap gpt-5 for Ollama purely via config.
+    agent_client = build_chat_client(cfg.models.agent)
+    verifier_client = build_chat_client(cfg.models.verifier)
 
     # IB-3 (tool output) rescore fn — used by MemoryController if provided.
     tool_gate = ib_gates.get("IB-3")
@@ -156,6 +150,21 @@ def build_pipeline(
         final_state = graph_run.invoke(initial)
         trace.final_output = final_state["final_output"]
         trace.refused = final_state.get("refused", False)
+
+        # Persist worker outputs into trace.extra so downstream analyses
+        # (e.g. hallucination_rate) can reconstruct the reasoning context.
+        worker_outs = final_state.get("worker_outputs", []) or []
+        trace.extra["worker_outputs"] = [
+            {
+                "worker_id": w["worker_id"],
+                "subtask": w["subtask"],
+                "tool_output": w["tool_output"],
+                "tool_output_status": w["tool_output_status"],
+                "output": w["output"],
+                "output_status": w["output_status"],
+            }
+            for w in worker_outs
+        ]
         return trace
 
     return pipeline

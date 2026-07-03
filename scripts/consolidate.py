@@ -2,11 +2,12 @@
 
 Outputs into `paper/deliverable/` — a single self-contained folder with:
   - RESULTS.md            (auto-generated summary of every number in numbers.json)
-  - numbers.tex, numbers.json
-  - tables/*.tex          (booktabs)
-  - figures/*.pdf         (rendered)
+  - numbers.json          (machine-readable copy of every headline number)
+  - figures/*.pdf         (rendered matplotlib figures)
   - figures/*.csv         (raw data behind figures)
+  - figures/failure_gallery.md   (correct blocks / false positives / misses table)
   - traces_index.json     (per-experiment counts, missing cells)
+  - aggregation_summary.json     (coverage report)
   - README.md             (how to reproduce)
 
 Usage:
@@ -47,7 +48,7 @@ def _traces_index(output_root: str) -> dict:
 
 
 def _emit_results_md(numbers: dict, index: dict, out: Path) -> None:
-    """Human-readable summary. Every number links back to a numbers.tex macro."""
+    """Human-readable summary. Every number comes from numbers.json."""
     lines: list[str] = []
     lines.append("# INFOSHIELD — Experimental Results")
     lines.append("")
@@ -151,9 +152,9 @@ def _emit_results_md(numbers: dict, index: dict, out: Path) -> None:
         e = numbers["efficiency"]
         lines.append("## 8. Efficiency")
         lines.append("")
-        lines.append(f"- Mean latency per run: **{e.get('meanlatencyms', 0):.0f} ms**")
-        lines.append(f"- Mean tokens per run: **{e.get('meantokens', 0):.0f}**")
-        lines.append(f"- Verifier overhead (fraction of tokens spent on 5-sample MC): **{e.get('verifieroverhead', 0):.1%}**")
+        lines.append(f"- Mean latency per run: **{e.get('mean_latency_ms', 0):.0f} ms**")
+        lines.append(f"- Mean tokens per run: **{e.get('mean_tokens', 0):.0f}**")
+        lines.append(f"- Verifier overhead (fraction of tokens spent on 5-sample MC): **{e.get('verifier_overhead', 0):.1%}**")
         lines.append("")
 
     lines.append("---")
@@ -161,12 +162,12 @@ def _emit_results_md(numbers: dict, index: dict, out: Path) -> None:
     lines.append("## Files in this folder")
     lines.append("")
     lines.append("- `RESULTS.md` — this file")
-    lines.append("- `numbers.tex` — LaTeX \\newcommand definitions consumed by the paper")
     lines.append("- `numbers.json` — machine-readable copy of every number above")
-    lines.append("- `tables/*.tex` — booktabs LaTeX tables for direct \\input{}")
-    lines.append("- `figures/*.pdf` — rendered figures (bar chart, Pareto curve, ablation heatmap, latency histogram, failure gallery)")
+    lines.append("- `figures/*.pdf` — rendered figures (bar chart, Pareto curve, ablation heatmap, latency histogram)")
     lines.append("- `figures/*.csv` — raw data behind each figure")
+    lines.append("- `figures/failure_gallery.md` — correct blocks / false positives / misses gallery")
     lines.append("- `traces_index.json` — coverage report (which cells have how many samples)")
+    lines.append("- `aggregation_summary.json` — per-cell coverage checks")
     lines.append("- `README.md` — how to reproduce and scale up")
 
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -177,14 +178,14 @@ def _emit_deliverable_readme(out: Path) -> None:
         (
             "# INFOSHIELD deliverable folder\n\n"
             "This folder is entirely auto-generated from `results/*.json` by:\n\n"
-            "```powershell\n"
-            "python scripts\\aggregate_results.py\n"
-            "python scripts\\consolidate.py\n"
+            "```bash\n"
+            "python scripts/aggregate_results.py\n"
+            "python scripts/consolidate.py\n"
             "```\n\n"
             "Nothing here is hand-written. To regenerate after new experiments:\n\n"
-            "1. Run more samples: `python scripts\\run_proof.py` (or any other runner)\n"
-            "2. Aggregate: `python scripts\\aggregate_results.py`\n"
-            "3. Consolidate: `python scripts\\consolidate.py`\n\n"
+            "1. Run more samples: `python scripts/run_proof.py` (or any other runner)\n"
+            "2. Aggregate: `python scripts/aggregate_results.py`\n"
+            "3. Consolidate: `python scripts/consolidate.py`\n\n"
             "See `RESULTS.md` for a human-readable summary of the current numbers.\n"
         ),
         encoding="utf-8",
@@ -194,7 +195,7 @@ def _emit_deliverable_readme(out: Path) -> None:
 def main():
     cfg = load_config()
 
-    # 1. Run the aggregator (produces paper/numbers.{tex,json}, tables/, figures/*.csv, ...)
+    # 1. Run the aggregator (produces paper/numbers.json, figures/*.csv, ...)
     if not _run([sys.executable, "scripts/aggregate_results.py"]):
         print("[warn] aggregator returned nonzero (missing cells are OK)")
 
@@ -218,26 +219,19 @@ def main():
     if DELIVERABLE.exists():
         shutil.rmtree(DELIVERABLE)
     DELIVERABLE.mkdir(parents=True)
-    (DELIVERABLE / "tables").mkdir()
     (DELIVERABLE / "figures").mkdir()
 
-    # numbers
-    for f in ("numbers.tex", "numbers.json", "aggregation_summary.json"):
+    # numbers + coverage
+    for f in ("numbers.json", "aggregation_summary.json"):
         src = PAPER_DIR / f
         if src.exists():
             shutil.copy2(src, DELIVERABLE / f)
 
-    # tables
-    tabs = PAPER_DIR / "tables"
-    if tabs.exists():
-        for f in tabs.glob("*.tex"):
-            shutil.copy2(f, DELIVERABLE / "tables" / f.name)
-
-    # figures (both PDFs and CSVs)
+    # figures (PDFs + CSVs + failure_gallery.{json,md})
     figs_dir = PAPER_DIR / "figures"
     if figs_dir.exists():
         for f in figs_dir.glob("*"):
-            if f.suffix in {".pdf", ".csv", ".json"}:
+            if f.suffix in {".pdf", ".csv", ".json", ".md"}:
                 shutil.copy2(f, DELIVERABLE / "figures" / f.name)
 
     # traces index

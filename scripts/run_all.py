@@ -6,7 +6,8 @@ Usage:
     python scripts/run_all.py --only main gsm8k # subset
 
 Every runner writes trace JSONs to `results/`. Nothing here contains numbers;
-`scripts/aggregate_results.py` turns the JSONs into paper/numbers.tex.
+`scripts/aggregate_results.py` turns the JSONs into `paper/numbers.json` and
+`paper/figures/*.csv`.
 """
 from __future__ import annotations
 

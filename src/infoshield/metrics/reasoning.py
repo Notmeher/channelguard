@@ -63,12 +63,39 @@ def ctca(traces: Iterable[Trace]) -> float:
 
 
 _HALLUC_PROMPT = (
-    "You are an evaluation judge. Given the final answer produced by an AI "
-    "assistant and the context available during its run, decide whether the "
-    "answer contains any HALLUCINATED claim — i.e. a factual assertion NOT "
-    "supported by the context and NOT plausibly common knowledge.\n\n"
+    "You are an evaluation judge. Given the user query, the tool outputs the "
+    "agent had access to, and the AI's final answer, decide whether the answer "
+    "contains any HALLUCINATED claim — i.e. a factual assertion NOT supported by "
+    "the provided context and NOT plausibly common knowledge.\n\n"
     "Respond with exactly one word: YES (hallucinates) or NO."
 )
+
+
+def _reconstruct_context(t: Trace) -> str:
+    """Build the judge context from a persisted trace.
+
+    Uses `trace.extra['worker_outputs']` when present (pipelines built after
+    the langgraph_pipeline update store it there); falls back to just the
+    raw_input for older traces.
+    """
+    parts: list[str] = [f"USER QUERY:\n{t.raw_input}"]
+    worker_outs = t.extra.get("worker_outputs") if t.extra else None
+    if worker_outs:
+        tool_lines = [
+            f"- (worker {w.get('worker_id', '?')}) {w.get('tool_output', '')}"
+            for w in worker_outs
+            if w.get("tool_output")
+        ]
+        if tool_lines:
+            parts.append("TOOL OUTPUTS AVAILABLE TO AGENTS:\n" + "\n".join(tool_lines))
+        worker_lines = [
+            f"- (worker {w.get('worker_id', '?')}) {w.get('output', '')}"
+            for w in worker_outs
+            if w.get("output") and w.get("output_status") != "BLOCKED"
+        ]
+        if worker_lines:
+            parts.append("WORKER INTERMEDIATE OUTPUTS:\n" + "\n".join(worker_lines))
+    return "\n\n".join(parts)
 
 
 def hallucination_rate(
@@ -80,15 +107,7 @@ def hallucination_rate(
         return 0.0
     hits = 0
     for t in tl:
-        tool_ctx = "\n".join(
-            f"- {w['tool_output']}" for w in [] if isinstance(w, dict)  # kept simple; see below
-        )
-        # Reconstruct tool outputs from the trace: worker_outputs live on state,
-        # not on Trace, so we use verifier context as a proxy.
-        context = "\n".join(
-            [f"raw_input: {t.raw_input}"]
-            + [f"llm_output_sample: {c.model} tokens={c.completion_tokens}" for c in t.llm_calls[:2]]
-        )
+        context = _reconstruct_context(t)
         text, _call = judge_chat(
             system=_HALLUC_PROMPT,
             user=f"CONTEXT:\n{context}\n\nFINAL ANSWER:\n{t.final_output}",

@@ -14,8 +14,8 @@ from infoshield.config import Config
 from infoshield.pipeline.langgraph_pipeline import PipelineFn, build_pipeline
 from infoshield.trace import Trace
 
-K_COPIES = 4  # NB: paper uses 10; 4 keeps cost tractable for the AAAI budget.
-PERTURB_RATE = 0.05  # fraction of chars to swap
+K_COPIES = 10          # matches the SmoothLLM paper (Robey et al. 2023).
+PERTURB_RATE = 0.05    # fraction of chars to swap
 
 
 def _perturb(text: str, rng: random.Random) -> str:

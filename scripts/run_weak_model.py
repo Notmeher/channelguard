@@ -3,8 +3,9 @@
 Requires `ollama serve` running and the model pulled:
     ollama pull llama3.1:8b-instruct-q4_K_M
 
-Falls back to the configured agent model if Ollama is unreachable, printing a
-clear notice so the user knows the appendix table can't be produced yet.
+Swaps `cfg.models.agent` for `cfg.models.weak_model` so `build_chat_client`
+routes agent calls (planner / workers / synthesizer) to the local Ollama
+endpoint. The verifier + judges keep their Anthropic models.
 """
 from __future__ import annotations
 
@@ -50,14 +51,16 @@ def main():
         )
         return
 
-    # For simplicity we still use the gpt-5 agent client here, but the runner
-    # tags results as 'weak_model' so they aggregate separately. A full
-    # implementation swaps AzureOpenAIClient for an OllamaClient here.
+    # Actually swap the agent model to the configured weak model (e.g. Llama-3.1
+    # via Ollama). The pipeline's build_chat_client will pick the right provider.
+    cfg_weak = copy.deepcopy(cfg)
+    cfg_weak.models.agent = cfg.models.weak_model
+
     ecfg = cfg.experiments["weak_model"]
     samples = load_dataset(ecfg.dataset, n_samples=args.n_samples or ecfg.n_samples, seed=(args.seeds or ecfg.seeds)[0])
 
     stats = run_matrix(
-        cfg=cfg,
+        cfg=cfg_weak,
         experiment="weak_model",
         dataset_name=ecfg.dataset,
         samples=samples,

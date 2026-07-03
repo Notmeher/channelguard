@@ -7,13 +7,19 @@ from __future__ import annotations
 
 import time
 
-from anthropic import Anthropic, APIError, RateLimitError
+from anthropic import (
+    Anthropic,
+    APIConnectionError,
+    APITimeoutError,
+    RateLimitError,
+)
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from infoshield.config import get_env
 from infoshield.trace import LLMCall
 
-_RETRYABLE = (RateLimitError, APIError)
+# Only truly transient failures are retried. BadRequestError (400) must surface.
+_RETRYABLE = (RateLimitError, APIConnectionError, APITimeoutError)
 
 
 class AnthropicClient:

@@ -11,13 +11,21 @@ from __future__ import annotations
 
 import time
 
-from openai import APIError, AzureOpenAI, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AzureOpenAI,
+    BadRequestError,
+    RateLimitError,
+)
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from infoshield.config import get_env
 from infoshield.trace import LLMCall
 
-_RETRYABLE = (RateLimitError, APIError)
+# Only truly transient failures are retried. BadRequestError (400) — including
+# Azure content-filter refusals — must be handled explicitly, not retried.
+_RETRYABLE = (RateLimitError, APIConnectionError, APITimeoutError)
 
 
 class AzureOpenAIClient:
@@ -64,7 +72,7 @@ class AzureOpenAIClient:
 
         try:
             resp = self.client.chat.completions.create(**kwargs)
-        except APIError as e:
+        except BadRequestError as e:
             msg = str(e).lower()
             # Azure content filter refuses (400 + jailbreak.detected). Treat as
             # an upstream refusal so the pipeline records the event and moves on
@@ -80,12 +88,19 @@ class AzureOpenAIClient:
                     latency_ms=latency_ms,
                 )
             # Strip params the model rejects and retry once, in-place.
+            stripped = False
             if "temperature" in msg:
                 kwargs.pop("temperature", None)
+                stripped = True
             if "seed" in msg:
                 kwargs.pop("seed", None)
+                stripped = True
             if "max_completion_tokens" in msg:
                 kwargs["max_tokens"] = kwargs.pop("max_completion_tokens")
+                stripped = True
+            if not stripped:
+                # Unknown 400 — surface it rather than retry blindly.
+                raise
             resp = self.client.chat.completions.create(**kwargs)
 
         latency_ms = (time.perf_counter() - started) * 1000.0

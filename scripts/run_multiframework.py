@@ -1,17 +1,21 @@
 """Multi-framework replication stub (AutoGen + CrewAI).
 
-Since the IB gate logic is pure Python (IBLayer.gate), replicating on other
-frameworks is a matter of wiring the same gates at each boundary. The stub
-runs the existing LangGraph pipeline under a different `system` name so the
-result JSONs partition correctly and the numbers table has real cells.
+This runner is currently NOT IMPLEMENTED. A faithful port requires
+re-implementing planner / workers / verifier / synthesizer natively in each
+framework (AutoGen's AssistantAgent + reply_func hooks, CrewAI's Agent + tool
+registry) so the six IB gates fire at the equivalent boundaries.
 
-TODO (paper-strength enhancement): re-implement the four agents natively in
-AutoGen (AssistantAgent + reply_func hooks) and CrewAI (Agent + tools).
-The runners here are drop-in-ready — swap SYSTEMS[name] to native builders.
+Running identical LangGraph copies under different names — as the previous
+stub did — produces meaningless "replication" numbers, so the runner now
+exits cleanly and prints a TODO instead of writing misleading traces.
+
+To force the old stub behaviour (only useful for smoke tests of the wiring),
+pass `--force-stub`.
 """
 from __future__ import annotations
 
 import argparse
+import sys
 
 from infoshield.baselines.registry import SYSTEMS
 from infoshield.config import load_config
@@ -37,7 +41,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n_samples", type=int, default=None)
     ap.add_argument("--seeds", type=int, nargs="+", default=None)
+    ap.add_argument(
+        "--force-stub",
+        action="store_true",
+        help="Run the LangGraph pipeline under AutoGen/CrewAI aliases. Produces "
+             "meaningless replication numbers; only for smoke-testing the wiring.",
+    )
     args = ap.parse_args()
+
+    if not args.force_stub:
+        print(
+            "[skip] run_multiframework: native AutoGen / CrewAI ports are not "
+            "implemented yet. Re-run with --force-stub to write LangGraph traces "
+            "under the AutoGen / CrewAI aliases (smoke-only, not a real result)."
+        )
+        sys.exit(0)
 
     cfg = load_config()
     ecfg = cfg.experiments["multi_framework"]
@@ -56,7 +74,7 @@ def main():
         seeds=args.seeds or ecfg.seeds,
         progress_cb=print,
     )
-    print(f"multi_framework: {stats}")
+    print(f"multi_framework (stub): {stats}")
 
 
 if __name__ == "__main__":

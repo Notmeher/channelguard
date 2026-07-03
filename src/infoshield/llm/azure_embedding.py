@@ -8,12 +8,13 @@ matching the sentence-transformers path.
 from __future__ import annotations
 
 import numpy as np
-from openai import APIError, AzureOpenAI, RateLimitError
+from openai import APIConnectionError, APITimeoutError, AzureOpenAI, RateLimitError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from infoshield.config import get_env
 
-_RETRYABLE = (RateLimitError, APIError)
+# Only truly transient failures are retried. BadRequestError (400) must surface.
+_RETRYABLE = (RateLimitError, APIConnectionError, APITimeoutError)
 
 
 class AzureEmbeddingClient:
@@ -49,17 +50,15 @@ class AzureEmbeddingClient:
     def encode(
         self,
         texts: list[str],
-        convert_to_numpy: bool = True,   # kept for signature compatibility with ST
-        normalize_embeddings: bool = True,
+        convert_to_numpy: bool = True,   # accepted for signature compat with sentence-transformers
+        normalize_embeddings: bool = True,  # accepted for signature compat; output is ALWAYS L2-normalized
     ) -> np.ndarray:
+        # Note: `normalize_embeddings` is accepted for API compat with
+        # sentence-transformers but is effectively ignored — vectors are always
+        # L2-normalized so downstream cosine similarity reduces to a dot product.
         if not texts:
             return np.zeros((0, self.dimensions or 1), dtype=np.float32)
         chunks: list[np.ndarray] = []
         for i in range(0, len(texts), self.batch_size):
             chunks.append(self._one_batch(texts[i : i + self.batch_size]))
-        out = np.vstack(chunks)
-        if not normalize_embeddings:
-            # We already normalized; scale back to preserve caller's expectation.
-            # In practice all callers want normalized; this branch is defensive only.
-            pass
-        return out
+        return np.vstack(chunks)

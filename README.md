@@ -27,7 +27,7 @@ pytest --run-network
 | `scripts/` | Experiment runners + `aggregate_results.py` |
 | `results/` | One JSON per pipeline sample (git-ignored, regenerable) |
 | `tests/` | 56 offline + 8 network tests |
-| `paper/` | LaTeX draft + auto-generated `numbers.tex`, tables, figure CSVs |
+| `paper/` | Auto-generated `numbers.json`, figure CSVs, and rendered PDFs |
 | `figures/` | matplotlib scripts that consume paper/figures/*.csv |
 
 ## Two encoder backends
@@ -69,7 +69,7 @@ python scripts\run_beta_sweep.py --n_samples 50 --seed 0
 python scripts\run_adaptive.py --n_samples 100
 ```
 
-## Aggregating results into the paper
+## Aggregating results
 
 The **only** path from `results/` to the paper is `scripts/aggregate_results.py`:
 
@@ -79,16 +79,13 @@ python scripts\aggregate_results.py
 
 This walks every JSON in `results/`, re-computes every metric, and writes:
 
-- `paper/numbers.tex` — `\newcommand{...}` for every number that appears in the paper
-- `paper/numbers.json` — machine-readable copy
-- `paper/tables/*.tex` — booktabs tables (main, reasoning fidelity, ablation, efficiency, multi_framework, adaptive, encoder_comparison)
+- `paper/numbers.json` — machine-readable record of every headline number
 - `paper/figures/*.csv` — data files consumed by `figures/*.py`
 - `paper/figures/failure_gallery.json` — 10 correct blocks / 10 false positives / 10 misses
-- `paper/aggregation_summary.json` — coverage report (missing cells, trace count)
+- `paper/aggregation_summary.json` — coverage report (missing experiments, under-filled cells, trace count)
 
-The paper `.tex` uses `\input{numbers.tex}` and references e.g. `\mainASRinfoshield` — never
-hard-coded numbers. Re-running experiments and re-running the aggregator updates every
-number in the paper automatically.
+Run `scripts/consolidate.py` to bundle everything (plus rendered figures and a
+human-readable `RESULTS.md`) into `paper/deliverable/`.
 
 ## Generating figures
 
@@ -97,7 +94,7 @@ python figures\fig1_asr_bar.py             # main ASR bar chart
 python figures\fig2_beta_pareto.py         # beta Pareto curve
 python figures\fig3_ablation_heatmap.py    # per-layer ablation
 python figures\fig5_gate_latency.py        # gate latency histogram
-python figures\fig6_failure_gallery.py     # LaTeX failure-case table
+python figures\fig6_failure_gallery.py     # Markdown failure-case gallery
 ```
 
 Fig 4 (architecture diagram) is drawn manually in draw.io / Excalidraw and exported as PDF.

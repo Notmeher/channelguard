@@ -68,7 +68,10 @@ def make_planner(
             subtasks.append(
                 Subtask(
                     id=f"st_{uuid.uuid4().hex[:6]}",
-                    description=gated_desc if passed else d,
+                    # When IB-1 blocks a subtask, drop the (adversarial) content
+                    # from state entirely so downstream nodes / persisted traces
+                    # never see it. Worker still skips via passed_ib1=False.
+                    description=gated_desc if passed else "[BLOCKED by IB-1]",
                     passed_ib1=passed,
                 )
             )
