@@ -155,18 +155,24 @@ auto-generated report, and [INFOSHIELD.md](INFOSHIELD.md) for the full
 research write-up (motivation, design, related work, discussion, ethics).
 
 **One-line summary** (over **641 traces**, ~\$110 total spend, 9 attack
-families, 5 systems): INFOSHIELD reduces `prompt_injection_strong` ASR by
-33 % (0.300 → 0.200) — its only headline ASR win — and demonstrates
-**three cases of mechanism substitution** on `tool_poisoning`,
-`memory_poisoning`, and `mem_role_confusion`: raw ASR is tied at 0.000
-with the undefended baseline, but INFOSHIELD achieves the block
-deterministically at the application layer (IB-3 or IB-3-mem, 30/30 +
-6/6 + 6/6) whereas undefended relies on Azure's stochastic server-side
-filter (24/30, 4/6, 4/6). GSM8K reasoning accuracy is preserved
-(+6.7 pp CTCA at n=15, CI ~±25 pp — not significant on its own), and
-INFOSHIELD runs **~7× faster** than undefended on adversarial workloads
-because IB gates short-circuit the pipeline before spending expensive
-gpt-5 / Claude calls; benign workloads have near-identical latency.
-See §7.5 of [INFOSHIELD.md](INFOSHIELD.md) for the honest deployment
-trade-off (mechanism substitution is only valuable if you distrust
-provider filters).
+families, 5 systems, **3 agent providers**): INFOSHIELD reduces
+`prompt_injection_strong` ASR by 33 % (0.300 → 0.200) — its only headline
+ASR win — and demonstrates **three cases of mechanism substitution** on
+`tool_poisoning`, `memory_poisoning`, and `mem_role_confusion`: raw ASR
+is tied at 0.000 with the undefended baseline, but INFOSHIELD achieves
+the block deterministically at the application layer (IB-3 or IB-3-mem,
+30/30 + 6/6 + 6/6) whereas undefended relies on Azure's stochastic
+server-side filter (24/30, 4/6, 4/6). A **3-way cross-provider
+counterfactual** (§6.16) shows that this pattern generalizes: on
+**Groq/Llama-3.3-70B** and **Anthropic/Haiku-4.5** (both with no Azure
+filter) undefended's `azure_filter` catches drop from 76 % to 0 %,
+replaced entirely by model-side in-band refusals; INFOSHIELD's IB
+blocks remain 100 % across all three providers — **provider-invariant**.
+GSM8K reasoning accuracy is preserved (+6.7 pp CTCA at n=15, CI ~±25 pp
+— not significant on its own), and INFOSHIELD runs **~7× faster** than
+undefended on adversarial workloads because IB gates short-circuit the
+pipeline before spending expensive gpt-5 / Claude calls; benign
+workloads have near-identical latency. See §7.5 of
+[INFOSHIELD.md](INFOSHIELD.md) for the honest deployment trade-off
+(mechanism substitution is only valuable if you distrust *whichever*
+stochastic layer your current provider provides).
