@@ -177,16 +177,15 @@ def _emit_deliverable_readme(out: Path) -> None:
     out.write_text(
         (
             "# INFOSHIELD deliverable folder\n\n"
-            "This folder is entirely auto-generated from `results/*.json` by:\n\n"
+            "This folder is entirely auto-generated. To regenerate after new experiments:\n\n"
             "```bash\n"
-            "python scripts/aggregate_results.py\n"
-            "python scripts/consolidate.py\n"
+            "python scripts/run_final.py            # runs experiments + writes FINAL.md\n"
+            "# or, to just refresh reports from existing traces:\n"
+            "python scripts/run_final.py --report-only\n"
             "```\n\n"
-            "Nothing here is hand-written. To regenerate after new experiments:\n\n"
-            "1. Run more samples: `python scripts/run_proof.py` (or any other runner)\n"
-            "2. Aggregate: `python scripts/aggregate_results.py`\n"
-            "3. Consolidate: `python scripts/consolidate.py`\n\n"
-            "See `RESULTS.md` for a human-readable summary of the current numbers.\n"
+            "Nothing here is hand-written. See `FINAL.md` for the comprehensive "
+            "research artifact (design, methodology, results, discussion) and "
+            "`RESULTS.md` for a shorter auto-generated summary.\n"
         ),
         encoding="utf-8",
     )

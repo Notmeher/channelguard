@@ -60,48 +60,27 @@ verifier:
   uncertainty_threshold: 0.3  # flag uncertain if std > 0.3
   consensus_collapse_std: 0.15
 
-# --- Experiment matrix (proof-of-concept scope, n=30 across the board) ---
-# Bump n_samples and add seeds later for tighter CIs.
+# --- Experiment matrix -----------------------------------------------
+# Only the experiments actually invoked by scripts/run_final.py.
+# To add more, edit STEPS in scripts/run_final.py and add matching entries here.
 experiments:
   main:
     dataset: hotpot_qa
     n_samples: 30
     seeds: [0]
-  advbench:
-    dataset: walledai/AdvBench
-    n_samples: 30
-    seeds: [0]
   gsm8k:
     dataset: gsm8k
-    n_samples: 30
-    seeds: [0]
-  injecagent:
-    dataset: uiuc-kang-lab/InjecAgent
-    n_samples: 30
-    seeds: [0]
-  adaptive:
-    dataset: hotpot_qa
-    n_samples: 30
+    n_samples: 15
     seeds: [0]
   ablation:
     dataset: hotpot_qa
-    n_samples: 30
+    n_samples: 6
     seeds: [0]
   beta_sweep:
     dataset: hotpot_qa
-    n_samples: 30
+    n_samples: 6
     seeds: [0]
     betas: [0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
-  multi_framework:
-    dataset: hotpot_qa
-    n_samples: 30
-    seeds: [0]
-    frameworks: [autogen, crewai]
-  phrase_bank_ablation:
-    dataset: hotpot_qa
-    n_samples: 30
-    seeds: [0]
-    sizes: [5, 20, 50]
 
 pipeline:
   n_workers: 3
