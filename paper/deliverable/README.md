@@ -1,16 +1,11 @@
 # INFOSHIELD deliverable folder
 
-This folder is entirely auto-generated from `results/*.json` by:
+This folder is entirely auto-generated. To regenerate after new experiments:
 
 ```bash
-python scripts/aggregate_results.py
-python scripts/consolidate.py
+python scripts/run_final.py            # runs experiments + writes FINAL.md
+# or, to just refresh reports from existing traces:
+python scripts/run_final.py --report-only
 ```
 
-Nothing here is hand-written. To regenerate after new experiments:
-
-1. Run more samples: `python scripts/run_proof.py` (or any other runner)
-2. Aggregate: `python scripts/aggregate_results.py`
-3. Consolidate: `python scripts/consolidate.py`
-
-See `RESULTS.md` for a human-readable summary of the current numbers.
+Nothing here is hand-written. See `FINAL.md` for the comprehensive research artifact (design, methodology, results, discussion) and `RESULTS.md` for a shorter auto-generated summary.

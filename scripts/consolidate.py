@@ -216,19 +216,47 @@ def main():
 
     # 3. Build the consolidated folder.
     # Preserve run-orchestrator artifacts (progress.jsonl, step_*.md, FINAL.md)
-    # across the wipe so scripts/run_final.py output isn't destroyed.
-    _PRESERVE_PATTERNS = ("progress.jsonl", "step_*.md", "FINAL.md")
+    # AND the reports written by specialized runners that consolidate doesn't
+    # regenerate itself (judges_report.json from run_judges.py, sentinel_check
+    # + provider_drift reports from their runners) so those aren't destroyed.
+    _PRESERVE_PATTERNS = (
+        "progress.jsonl", "step_*.md", "FINAL.md",
+        "judges_report.json",
+        "sentinel_check_report.json",
+        "provider_drift_report.json",
+    )
+    # Figures written by analyses that consolidate doesn't drive itself
+    # (analyze_gates, analyze_certified_radius, analyze_argmax_phrases,
+    # analyze_gate_pareto, fig7_sankey_attribution, fig8_coverage_matrix).
+    # Their CSVs/PDFs live in DELIVERABLE/figures/ but NOT in PAPER_DIR/figures/,
+    # so a naive wipe-and-copy would lose them. Preserve by name pattern.
+    _PRESERVE_FIGURE_PATTERNS = (
+        "roc_per_gate.*", "threshold_sensitivity.*",
+        "certified_radius_*.*", "certified_radius_per_gate.*",
+        "argmax_phrase_*.*",
+        "gate_pareto.*", "gate_pareto_summary.json",
+        "fig7_sankey.*", "fig8_coverage_matrix.*",
+    )
     preserved: dict[str, bytes] = {}
+    preserved_figs: dict[str, bytes] = {}
     if DELIVERABLE.exists():
         for pat in _PRESERVE_PATTERNS:
             for f in DELIVERABLE.glob(pat):
                 if f.is_file():
                     preserved[f.name] = f.read_bytes()
+        figs_deliv = DELIVERABLE / "figures"
+        if figs_deliv.exists():
+            for pat in _PRESERVE_FIGURE_PATTERNS:
+                for f in figs_deliv.glob(pat):
+                    if f.is_file():
+                        preserved_figs[f.name] = f.read_bytes()
         shutil.rmtree(DELIVERABLE)
     DELIVERABLE.mkdir(parents=True)
     (DELIVERABLE / "figures").mkdir()
     for name, data in preserved.items():
         (DELIVERABLE / name).write_bytes(data)
+    for name, data in preserved_figs.items():
+        (DELIVERABLE / "figures" / name).write_bytes(data)
 
     # numbers + coverage
     for f in ("numbers.json", "aggregation_summary.json"):
