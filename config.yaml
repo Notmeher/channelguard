@@ -1,0 +1,124 @@
+# INFOSHIELD — canonical config. Nothing tunable is hardcoded outside this file.
+# Every module reads from here via infoshield.config.load_config().
+
+seed: 0
+output_root: results
+dataset_cache: datasets
+
+# --- Model roster (locked per PLAN v1.0) ---------------------------------------
+models:
+  agent:                     # planner + worker + synthesizer
+    provider: azure_openai
+    deployment: gpt-5        # matches AZURE_OPENAI_DEPLOYMENT
+    temperature: 0.0
+    max_tokens: 1024
+
+  verifier:                  # 5-sample MC safety scorer
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    temperature: 1.0
+    max_tokens: 32
+    samples: 5
+
+  judge_hallucination:       # LLM-as-judge, high quality
+    provider: anthropic
+    model: claude-opus-4-20250514   # adjust to your available Opus deployment
+    temperature: 0.0
+    max_tokens: 512
+
+  judge_consistency:         # LLM-as-judge, cheaper
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    temperature: 0.0
+    max_tokens: 256
+
+  weak_model:                # appendix cross-model generalization
+    provider: ollama
+    model: llama3.1:8b-instruct-q4_K_M
+    temperature: 0.0
+    max_tokens: 1024
+
+# --- IB gate embedding --------------------------------------------------------
+# provider: local (sentence-transformers, free, offline) or azure (Azure OpenAI)
+embedding:
+  provider: local
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+  # --- Fallback: switch to Azure text-embedding-3-large -----------------------
+  # If HuggingFace has issues, set provider: azure and uncomment below.
+  # provider: azure
+  # deployment: text-embedding-3-large   # matches AZURE_OPENAI_EMBED_DEPLOYMENT
+  # dimensions: 1536                     # matches AZURE_OPENAI_EMBED_DIMENSIONS
+
+# --- Information Bottleneck gate --------------------------------------------
+ib:
+  beta: 1.0
+  threshold: 0.60             # BLOCK when risk >= threshold
+  compress_ratio: 0.70        # COMPRESS when compress_ratio*threshold <= risk < threshold
+  compress_sentences: 2       # on COMPRESS, keep first N sentences
+  phrase_bank_size: 20        # used in phrase-bank size ablation (5 / 20 / 50)
+  active_layers: [0, 1, 2, 3, 4, 5]  # ablation: drop indices to disable gates
+
+# --- Uncertainty-aware verifier ---------------------------------------------
+verifier:
+  unsafe_threshold: 0.5       # flag unsafe if mean < 0.5
+  uncertainty_threshold: 0.3  # flag uncertain if std > 0.3
+  consensus_collapse_std: 0.15
+
+# --- Experiment matrix (proof-of-concept scope, n=30 across the board) ---
+# Bump n_samples and add seeds later for tighter CIs.
+experiments:
+  main:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+  advbench:
+    dataset: walledai/AdvBench
+    n_samples: 30
+    seeds: [0]
+  gsm8k:
+    dataset: gsm8k
+    n_samples: 30
+    seeds: [0]
+  injecagent:
+    dataset: uiuc-kang-lab/InjecAgent
+    n_samples: 30
+    seeds: [0]
+  adaptive:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+  ablation:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+  beta_sweep:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+    betas: [0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+  multi_framework:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+    frameworks: [autogen, crewai]
+  weak_model:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+  phrase_bank_ablation:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+    sizes: [5, 20, 50]
+
+pipeline:
+  n_workers: 3
+  request_timeout_s: 60
+  max_retries: 4
+  parallel_samples: 8   # threads for the runner
+
+logging:
+  trace_write_every: 1
+  console_level: INFO

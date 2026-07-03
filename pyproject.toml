@@ -1,0 +1,70 @@
+[project]
+name = "infoshield"
+version = "0.1.0"
+description = "Safety-constrained information flow for trustworthy multi-agent LLM systems"
+requires-python = ">=3.10,<3.13"
+readme = "README.md"
+authors = [{ name = "INFOSHIELD authors" }]
+
+dependencies = [
+    # Config & typing
+    "pydantic>=2.7,<3",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "tenacity>=8.2",
+
+    # LLM clients
+    "openai>=1.30",
+    "anthropic>=0.30",
+
+    # Multi-agent orchestration
+    "langgraph>=0.2",
+    "langchain-openai>=0.1",
+    "langchain-anthropic>=0.1",
+
+    # Safety layer: local embeddings + similarity
+    "sentence-transformers>=2.7",
+    "torch>=2.3",
+    "scikit-learn>=1.4",
+
+    # Data
+    "datasets>=2.19",
+    "numpy>=1.26",
+    "pandas>=2.2",
+
+    # Figures
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+
+    # HTTP (for Ollama weak-model + Llama Guard baseline later)
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/infoshield"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "network: tests that make real API calls",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
