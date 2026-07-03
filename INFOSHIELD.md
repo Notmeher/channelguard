@@ -6,7 +6,7 @@
 
 ## Abstract
 
-We present INFOSHIELD, a defense-in-depth framework for multi-agent LLM systems that inserts six *information-bottleneck (IB) gates* at every semantic boundary of a `planner → workers → verifier → synthesizer` pipeline. Each gate scores incoming text against an adversarial-phrase bank using sentence embeddings and either **passes**, **compresses** (keeps first N sentences), or **blocks** it. Combined with a Monte-Carlo uncertainty-aware verifier, this yields deterministic, in-application blocking that is complementary to — and stricter than — provider-side content filters. On **605 pipeline traces** spanning nine attack families (`prompt_injection_strong`, `tool_poisoning`, `adaptive_paraphrase`, `memory_poisoning`, `reasoning_state_injection`, `consensus_collapse`, and three stateful-memory variants `mem_slow_drift`, `mem_consent_escalation`, `mem_role_confusion`) plus GSM8K reasoning-fidelity tests, INFOSHIELD reduces prompt-injection ASR by 33 % relative (0.300 → 0.200) — **its only headline ASR win** — and demonstrates **three cases of mechanism substitution** on `tool_poisoning`, `memory_poisoning`, and `mem_role_confusion`: raw ASR is tied at 0.000 with the undefended baseline, but INFOSHIELD achieves the block **deterministically at the application layer** (IB-3 or IB-3-mem, 30/30 + 6/6 + 6/6) whereas undefended relies on Azure's stochastic server-side filter (24/30, 4/6, 4/6). A follow-up **cross-provider counterfactual experiment** (§6.16) re-ran the same three attacks with a Groq/Llama-3.3-70B agent that has no server-side content filter and empirically shows that **INFOSHIELD's block mechanism is provider-invariant** (still 30/30 + 6/6 + 4/6 IB blocks) while `undefended`'s block mechanism **shifts entirely** from Azure filter (~4/6) to Llama RLHF (`answered_safely` 6/6). Beyond aggregate numbers, we contribute three sharpening analyses derived from the trace corpus at zero API cost: (i) a **closed-form first-order local margin** in embedding space — IB-3 achieves median ε = 0.495 under the first-order Taylor bound (loose for large perturbations; not a certified guarantee in the randomized-smoothing sense); (ii) an **argmax phrase analysis** revealing that the 20-phrase bank is drastically over-provisioned (only 4/20 phrases carry any load on the original corpus), which motivated an **F3 sentinel-randomization robustness check** (§6.15) — we re-ran the three mechanism-substitution attacks with per-attack random tokens that do not appear in the phrase bank, and IB blocks remained **6/6 across all three attacks** (Δ = 0 from the original ATTACK_SUCCESS variants), proving the defense responds to injection **template structure**, not marker-string coincidence; and (iii) a **cost-conditional gate Pareto** showing `{IB-0, IB-3}` alone at 54 ms/run recovers ~57 % of the full-defense ASR reduction (upper bound), giving deployments a controllable safety-vs-latency knob. A head-to-head comparison against three published input-only baselines confirms an architectural gap on inter-agent surfaces (caveat: baselines are at n=6 vs INFOSHIELD's n=30; see §12). We report two honest neutral findings (`reasoning_state_injection` and `consensus_collapse`) and one honest defeat (white-box `adaptive_paraphrase` at 0.667 ASR). GSM8K accuracy is preserved (+6.7 pp CTCA at n=15, CI ~±25 pp — not statistically significant on its own). INFOSHIELD runs **~7× faster** than undefended on attack workloads because IB gates short-circuit the pipeline before expensive gpt-5 / Claude calls; benign workloads have near-identical latency. (i) a **closed-form first-order local margin** in embedding space — IB-3 achieves median ε = 0.495 under the first-order Taylor bound (loose for large perturbations; not a certified guarantee in the randomized-smoothing sense); (ii) an **argmax phrase analysis** revealing that the 20-phrase bank is drastically over-provisioned (only 4/20 phrases carry any load on the original corpus), which motivated an **F3 sentinel-randomization robustness check** (§6.15) — we re-ran the three mechanism-substitution attacks with per-attack random tokens that do not appear in the phrase bank, and IB blocks remained **6/6 across all three attacks** (Δ = 0 from the original ATTACK_SUCCESS variants), proving the defense responds to injection **template structure**, not marker-string coincidence; and (iii) a **cost-conditional gate Pareto** showing `{IB-0, IB-3}` alone at 54 ms/run recovers ~57 % of the full-defense ASR reduction (upper bound), giving deployments a controllable safety-vs-latency knob. A head-to-head comparison against three published input-only baselines confirms an architectural gap on inter-agent surfaces (caveat: baselines are at n=6 vs INFOSHIELD's n=30; see §12). We report two honest neutral findings (`reasoning_state_injection` and `consensus_collapse`) and one honest defeat (white-box `adaptive_paraphrase` at 0.667 ASR). GSM8K accuracy is preserved (+6.7 pp CTCA at n=15, CI ~±25 pp — not statistically significant on its own). INFOSHIELD runs **~7× faster** than undefended on attack workloads because IB gates short-circuit the pipeline before expensive gpt-5 / Claude calls; benign workloads have near-identical latency.
+We present INFOSHIELD, a defense-in-depth framework for multi-agent LLM systems that inserts six *information-bottleneck (IB) gates* at every semantic boundary of a `planner → workers → verifier → synthesizer` pipeline. Each gate scores incoming text against an adversarial-phrase bank using sentence embeddings and either **passes**, **compresses** (keeps first N sentences), or **blocks** it. Combined with a Monte-Carlo uncertainty-aware verifier, this yields deterministic, in-application blocking that is complementary to — and stricter than — provider-side content filters. On **641 pipeline traces** spanning nine attack families (`prompt_injection_strong`, `tool_poisoning`, `adaptive_paraphrase`, `memory_poisoning`, `reasoning_state_injection`, `consensus_collapse`, and three stateful-memory variants `mem_slow_drift`, `mem_consent_escalation`, `mem_role_confusion`) plus GSM8K reasoning-fidelity tests, INFOSHIELD reduces prompt-injection ASR by 33 % relative (0.300 → 0.200) — **its only headline ASR win** — and demonstrates **three cases of mechanism substitution** on `tool_poisoning`, `memory_poisoning`, and `mem_role_confusion`: raw ASR is tied at 0.000 with the undefended baseline, but INFOSHIELD achieves the block **deterministically at the application layer** (IB-3 or IB-3-mem, 30/30 + 6/6 + 6/6) whereas undefended relies on Azure's stochastic server-side filter (24/30, 4/6, 4/6). A follow-up **cross-provider counterfactual experiment** (§6.16) re-ran the same three attacks against **two independent non-Azure providers** — Groq/Llama-3.3-70B and Anthropic/Haiku-4.5 — and empirically shows that **INFOSHIELD's block mechanism is provider-invariant** (100 % IB blocks in every cell) while `undefended`'s block mechanism **shifts entirely per provider** (Azure filter dominant on Azure → model-side in-band refusals dominant on both Groq and Anthropic, with `azure_filter` catches dropping from 76 % to 0 %). Two independent non-Azure providers show the same qualitative pattern, ruling out the alternate reading *"this only works because one alternative happens to be robust"*. Beyond aggregate numbers, we contribute three sharpening analyses derived from the trace corpus at zero API cost: (i) a **closed-form first-order local margin** in embedding space — IB-3 achieves median ε = 0.495 under the first-order Taylor bound (loose for large perturbations; not a certified guarantee in the randomized-smoothing sense); (ii) an **argmax phrase analysis** revealing that the 20-phrase bank is drastically over-provisioned (only 4/20 phrases carry any load on the original corpus), which motivated an **F3 sentinel-randomization robustness check** (§6.15) — we re-ran the three mechanism-substitution attacks with per-attack random tokens that do not appear in the phrase bank, and IB blocks remained **6/6 across all three attacks** (Δ = 0 from the original ATTACK_SUCCESS variants), proving the defense responds to injection **template structure**, not marker-string coincidence; and (iii) a **cost-conditional gate Pareto** showing `{IB-0, IB-3}` alone at 54 ms/run recovers ~57 % of the full-defense ASR reduction (upper bound), giving deployments a controllable safety-vs-latency knob. A head-to-head comparison against three published input-only baselines confirms an architectural gap on inter-agent surfaces (caveat: baselines are at n=6 vs INFOSHIELD's n=30; see §12). We report two honest neutral findings (`reasoning_state_injection` and `consensus_collapse`) and one honest defeat (white-box `adaptive_paraphrase` at 0.667 ASR). GSM8K accuracy is preserved (+6.7 pp CTCA at n=15, CI ~±25 pp — not statistically significant on its own). INFOSHIELD runs **~7× faster** than undefended on attack workloads because IB gates short-circuit the pipeline before expensive gpt-5 / Claude calls; benign workloads have near-identical latency. (i) a **closed-form first-order local margin** in embedding space — IB-3 achieves median ε = 0.495 under the first-order Taylor bound (loose for large perturbations; not a certified guarantee in the randomized-smoothing sense); (ii) an **argmax phrase analysis** revealing that the 20-phrase bank is drastically over-provisioned (only 4/20 phrases carry any load on the original corpus), which motivated an **F3 sentinel-randomization robustness check** (§6.15) — we re-ran the three mechanism-substitution attacks with per-attack random tokens that do not appear in the phrase bank, and IB blocks remained **6/6 across all three attacks** (Δ = 0 from the original ATTACK_SUCCESS variants), proving the defense responds to injection **template structure**, not marker-string coincidence; and (iii) a **cost-conditional gate Pareto** showing `{IB-0, IB-3}` alone at 54 ms/run recovers ~57 % of the full-defense ASR reduction (upper bound), giving deployments a controllable safety-vs-latency knob. A head-to-head comparison against three published input-only baselines confirms an architectural gap on inter-agent surfaces (caveat: baselines are at n=6 vs INFOSHIELD's n=30; see §12). We report two honest neutral findings (`reasoning_state_injection` and `consensus_collapse`) and one honest defeat (white-box `adaptive_paraphrase` at 0.667 ASR). GSM8K accuracy is preserved (+6.7 pp CTCA at n=15, CI ~±25 pp — not statistically significant on its own). INFOSHIELD runs **~7× faster** than undefended on attack workloads because IB gates short-circuit the pipeline before expensive gpt-5 / Claude calls; benign workloads have near-identical latency.
 
 ---
 
@@ -273,7 +273,7 @@ Additional metrics defined in [src/infoshield/metrics/](src/infoshield/metrics/)
 
 ## 6. Results
 
-Total dataset: **605 pipeline traces** on disk. Experiment breakdown:
+Total dataset: **641 pipeline traces** on disk. Experiment breakdown:
 
 | Experiment | # traces |
 |---|---:|
@@ -411,7 +411,7 @@ Latency is dominated by the 5-sample MC verifier (up to 3 workers × 5 samples =
 
 ### 6.7 Gate ROC and threshold sensitivity
 
-Every `GateDecision.risk` score is persisted to disk. From the existing 605 traces we can compute a per-gate ROC curve without any additional API calls, and a threshold-sensitivity sweep that shows how ASR would change if we picked a different θ.
+Every `GateDecision.risk` score is persisted to disk. From the existing 641 traces we can compute a per-gate ROC curve without any additional API calls, and a threshold-sensitivity sweep that shows how ASR would change if we picked a different θ.
 
 **Per-gate AUC** (computed by [scripts/analyze_gates.py](scripts/analyze_gates.py) over all attack traces):
 
@@ -503,7 +503,7 @@ $$
 
 Read this section as *"a principled per-block confidence signal derived from the same score the gate uses to decide,"* not *"a mathematical certificate of robustness"*.
 
-Per-gate medians over the 605-trace corpus (θ = 0.60):
+Per-gate medians over the 641-trace corpus (θ = 0.60):
 
 | Gate | n_defender (BLOCKED) | median ε_defender | n_benign (PASSED) | median ε_benign |
 |---|---:|---:|---:|---:|
@@ -521,7 +521,7 @@ Data: [paper/deliverable/figures/certified_radius_per_gate.pdf](paper/deliverabl
 
 ### 6.11 Which phrases actually do the work?
 
-Every BLOCKED / COMPRESSED gate decision has an *argmax phrase* — the bank entry that produced the winning cosine. [scripts/analyze_argmax_phrases.py](scripts/analyze_argmax_phrases.py) re-scores the 605 traces with the same MiniLM encoder to attribute each block. Findings on the 331 recoverable events (worker outputs are only persisted when the pipeline reaches workers; IB-0 blocks bypass this):
+Every BLOCKED / COMPRESSED gate decision has an *argmax phrase* — the bank entry that produced the winning cosine. [scripts/analyze_argmax_phrases.py](scripts/analyze_argmax_phrases.py) re-scores the 641 traces with the same MiniLM encoder to attribute each block. Findings on the 331 recoverable events (worker outputs are only persisted when the pipeline reaches workers; IB-0 blocks bypass this):
 
 | Rank | Phrase idx | Fires | Phrase excerpt |
 |---:|---:|---:|---|
@@ -629,56 +629,77 @@ Data + comparison table: [paper/deliverable/sentinel_check_report.json](paper/de
 
 **Motivation.** §7.2 argues that mechanism substitution (INFOSHIELD's IB-3 / IB-3-mem replacing Azure's stochastic filter on `tool_poisoning`, `memory_poisoning`, `mem_role_confusion`) matters *iff* the deployment cannot trust the provider filter to stay stable across policy updates. Prior to this experiment that claim was purely hypothetical — every measured trace used Azure OpenAI + Azure's strong server-side filter, and `undefended` never leaked one of these attacks in our data. A reviewer will (rightly) push back: *"if Azure catches everything, why should I care that INFOSHIELD does too?"*
 
-**Experiment** ([scripts/run_provider_drift.py](scripts/run_provider_drift.py)). Re-run the three mechanism-substitution attacks against a **different agent-side provider with no server-side content filter**. We chose Groq serving `llama-3.3-70b-versatile` — Meta's flagship open-model, OpenAI-compatible API, has the model's own RLHF safety training but **no separate Azure-style filter layer**. Verifier is unchanged (Claude Sonnet 4.5), so the only varied factor is the primary agent model + its filter.
+**Experiment** ([scripts/run_provider_drift.py](scripts/run_provider_drift.py)). Re-run the three mechanism-substitution attacks against **two different agent-side providers**, each with no Azure-style server-side content filter:
 
-- Same 6 HotpotQA samples × 2 systems × 3 attacks = 36 runs
-- Traces at `results/provider_drift/`
-- Cost: ~$3.60 (Groq is ~10× cheaper than gpt-5 on tokens; verifier stays Sonnet)
+1. **Groq** serving `llama-3.3-70b-versatile` — Meta's flagship open-model, OpenAI-compatible API, only the model's own RLHF safety training.
+2. **Anthropic** serving `claude-haiku-4-5` — Anthropic's fast Sonnet-tier sibling, only Anthropic's own safety training (no separate filter layer beyond in-band model behavior).
+
+Verifier is unchanged in both experiments (Claude Sonnet 4.5), so the only varied factor is the primary agent model + its safety/filter layer. A 3-way comparison (Azure gpt-5 vs Groq Llama-3.3 vs Anthropic Haiku-4.5) triangulates whether `undefended`'s block mechanism is truly provider-dependent or specific to one alternative stack.
+
+- Same 6 HotpotQA samples × 2 systems × 3 attacks = 36 runs per provider (72 total)
+- Traces at `results/provider_drift_groq/` and `results/provider_drift_anthropic/`
+- Cost: ~$4 for Groq + ~$5 for Anthropic = ~$9 for the full 3-way comparison
 
 **Reading criterion.** For each attack, compare `undefended`'s attribution profile on Azure vs Groq. If `azure_filter` catches drop from ~4/6 to ~0/6 under Groq (no such filter) AND `leaked` rises correspondingly, we have empirical evidence that provider-filter drift is a real risk. If `infoshield`'s `ib_blocked` count stays at 6/6 across both providers, mechanism substitution is empirically vindicated: application-level blocking is invariant across provider changes.
 
 Results (populated by [scripts/run_provider_drift.py](scripts/run_provider_drift.py); raw comparison at [paper/deliverable/provider_drift_report.json](paper/deliverable/provider_drift_report.json)):
 
-**Attribution breakdown** — the important table (not just ASR, which is 0.000 in every cell):
+**3-way attribution breakdown** — the important table (not just ASR, which is 0.000 in every cell):
 
 | Attack | System | Agent provider | n | ib_blocked | azure_filter | verifier_unsafe | answered_safely | leaked | ASR |
 |---|---|:-:|---:|---:|---:|---:|---:|---:|---:|
 | `tool_poisoning` | `undefended` | **Azure gpt-5** | 30 | 0 | **24** | 4 | 2 | 0 | 0.000 |
-| `tool_poisoning` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | **0** | 2 | **4** | 0 | 0.000 |
+| `tool_poisoning` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | 0 | 2 | **4** | 0 | 0.000 |
+| `tool_poisoning` | `undefended` | **Anthropic Haiku-4.5** | 6 | 0 | 0 | 2 | **4** | 0 | 0.000 |
 | `tool_poisoning` | **`infoshield`** | Azure gpt-5 | 30 | **30** | 0 | 0 | 0 | 0 | 0.000 |
 | `tool_poisoning` | **`infoshield`** | Groq Llama-3.3-70B | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
+| `tool_poisoning` | **`infoshield`** | Anthropic Haiku-4.5 | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
 | `memory_poisoning` | `undefended` | **Azure gpt-5** | 6 | 0 | **4** | 0 | 2 | 0 | 0.000 |
-| `memory_poisoning` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | **0** | 0 | **6** | 0 | 0.000 |
+| `memory_poisoning` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | 0 | 0 | **6** | 0 | 0.000 |
+| `memory_poisoning` | `undefended` | **Anthropic Haiku-4.5** | 6 | 0 | 0 | 2 | **4** | 0 | 0.000 |
 | `memory_poisoning` | **`infoshield`** | Azure gpt-5 | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
 | `memory_poisoning` | **`infoshield`** | Groq Llama-3.3-70B | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
+| `memory_poisoning` | **`infoshield`** | Anthropic Haiku-4.5 | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
 | `mem_role_confusion` | `undefended` | **Azure gpt-5** | 6 | 0 | **4** | 1 | 1 | 0 | 0.000 |
-| `mem_role_confusion` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | **0** | 0 | **6** | 0 | 0.000 |
+| `mem_role_confusion` | `undefended` | **Groq Llama-3.3-70B** | 6 | 0 | 0 | 0 | **6** | 0 | 0.000 |
+| `mem_role_confusion` | `undefended` | **Anthropic Haiku-4.5** | 6 | 0 | 0 | 2 | **4** | 0 | 0.000 |
 | `mem_role_confusion` | **`infoshield`** | Azure gpt-5 | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
 | `mem_role_confusion` | **`infoshield`** | Groq Llama-3.3-70B | 4† | **4** | 0 | 0 | 0 | 0 | 0.000 |
+| `mem_role_confusion` | **`infoshield`** | Anthropic Haiku-4.5 | 6 | **6** | 0 | 0 | 0 | 0 | 0.000 |
 
 †2 runs failed with Groq HTTP 429 rate-limits (30 RPM free-tier cap × 3-worker × 8-parallel-samples burst). Rerunning under Groq Dev-tier would recover them.
 
-**The three empirical findings:**
+**The four empirical findings from the 3-way comparison:**
 
-1. **On Azure gpt-5, undefended reaches ASR = 0.000 primarily via Azure's server-side content filter** (24/30 on tool_poisoning, 4/6 on the memory attacks). Verifier + accidental benign responses handle the remaining 3–6 per cell.
+1. **On Azure gpt-5, undefended reaches ASR = 0.000 primarily via Azure's server-side content filter** (24/30 on tool_poisoning, 4/6 on the memory attacks — **32/42 = 76 % of catches attributable to the provider filter**). Verifier + benign responses handle the remaining ~24 %.
 
-2. **On Groq Llama-3.3-70B, undefended still reaches ASR = 0.000 — but by an entirely different mechanism.** `azure_filter` counts drop to **zero** in every cell (as expected — Groq has no such filter), and are replaced almost entirely by **`answered_safely` (12/18 across the three attacks)**. Llama-3.3-70B's own RLHF safety training refuses to comply with the injection templates in-band — it simply produces a benign answer instead of executing the injected instruction. The verifier catches a couple more (2/6 tool_poisoning). Zero leaks either way.
+2. **On BOTH non-Azure providers, `azure_filter` counts drop to zero in every cell** (as expected — no such filter exists there), and are replaced almost entirely by **model-side in-band refusals** logged as `answered_safely`. The specific mix varies by model:
+   - **Groq Llama-3.3-70B**: 16/18 = 89 % `answered_safely` (RLHF refuses in-band); 2/18 verifier catches
+   - **Anthropic Haiku-4.5**: 12/18 = 67 % `answered_safely`; 6/18 = 33 % verifier catches (a bit more verifier activity than Groq — Haiku's outputs trigger the safety scoring more often)
+   - The absolute safety outcome (0 leaks) is identical, but the *mechanism* is entirely provider-specific.
 
-3. **On both providers, INFOSHIELD reaches ASR = 0.000 via IB gates alone**, deterministically and inspectably: 30/30 on Azure-tool, 6/6 on Groq-tool, 6/6 + 6/6 on Azure- and Groq-memory, and 6/6 + 4/6 (4 due to Groq rate-limit) on role_confusion. **The IB-block mechanism is invariant across the two providers**, whereas undefended's block mechanism shifts entirely (Azure filter → Llama RLHF).
+3. **On all THREE providers, INFOSHIELD reaches ASR = 0.000 via IB gates alone**, deterministically and inspectably:
+   - Azure: 30 + 6 + 6 = **42/42 IB blocks**
+   - Groq: 6 + 6 + 4 = **16/18 IB blocks** (2 rate-limit failures)
+   - Anthropic: 6 + 6 + 6 = **18/18 IB blocks**
+   - The IB-block mechanism is **invariant across three radically different provider stacks** (Azure enterprise API + gpt-5, Groq open-model serving + Llama-3.3, Anthropic direct API + Haiku-4.5). Verifier / azure_filter / answered_safely all disappear from INFOSHIELD's attribution because IB fires *before* the pipeline reaches the agent LLM.
 
-**What this experiment ACTUALLY validates** (a more honest and stronger F1 story than the original "Azure could drift" framing):
+4. **Cross-provider triangulation** rules out the alternate explanation *"maybe Groq's Llama happens to have unusually strong RLHF for these attacks"*. Anthropic Haiku shows the same `azure_filter = 0` + `answered_safely` dominant pattern. Two different model families, two different training corpora, two different vendors — same qualitative attribution shift when Azure's filter is removed. The consistency across two independent non-Azure providers is the real evidence that **`undefended`'s safety story is fundamentally provider-dependent**, whereas INFOSHIELD's is not.
 
-- **The original F1 concern was too narrow.** It assumed the risk to `undefended` was "Azure changing its policy". The Groq result shows the actual risk is broader: `undefended`'s safety depends on *whichever* stochastic layer the current deployment provides — Azure's classifier if you deploy Azure, Llama's RLHF if you deploy Llama, xAI's training if you deploy Grok, etc. Each is opaque, each can shift with new model/policy versions, and each can be circumvented by attacks that were not in that layer's training distribution.
-- **INFOSHIELD is the only layer that is deployment-invariant.** IB-3 blocks the poisoned tool output with `risk = 0.72` regardless of whether the downstream model is gpt-5, Llama, Grok, Claude, or a fine-tuned in-house model. Every block is an inspectable `GateDecision` record. That determinism is the paper's real contribution — not a hypothetical about Azure drift.
-- **The mechanism-substitution reframe (§6.2 #2, #7, #9, §7.2) is empirically vindicated in a stronger form**: on two radically different agent stacks (Azure gpt-5 vs Groq Llama-3.3-70B), INFOSHIELD produces **identical** attribution (100 % IB blocks), while `undefended` produces **completely different** attribution (Azure filter dominance → RLHF dominance). Whichever provider you deploy on, INFOSHIELD adds the same layer; whichever provider you deploy on, `undefended` inherits *that* provider's stochastic behavior.
+**What this experiment ACTUALLY validates** (stronger than the original hypothetical F1):
+
+- **The original F1 concern ("Azure could drift") was too narrow.** The Groq + Anthropic results show the risk is broader: `undefended`'s safety depends on *whichever* stochastic layer the current deployment provides — Azure's classifier on Azure, Llama's RLHF on Groq, Haiku's RLHF on Anthropic. Each is opaque, each can shift with model/policy versions, each catches a different mix of attack templates.
+- **INFOSHIELD is the only layer that is deployment-invariant.** IB-3 fires with the same `risk = 0.72` on the poisoned tool output whether the downstream is gpt-5, Llama-3.3-70B, Haiku-4.5, or a fine-tuned in-house model. Every block is an inspectable `GateDecision` record.
+- **The mechanism-substitution reframe (§6.2 #2, #7, #9, §7.2) is empirically vindicated on TWO independent non-Azure providers.** Not just one — which rules out the alternate reading *"this only works because one specific alternative model happens to be robust"*.
 
 **What this experiment does NOT show:**
 
-- It does not show `undefended` leaking on Groq — Llama-3.3-70B's own safety training happens to catch these three attack families in-band. A more adversarially-optimized attack (e.g. one that RLHF has not seen) could well leak; testing that is out of scope here.
-- It does not test un-RLHF'd base models (e.g., Llama-3-70B-base) — where undefended would almost certainly leak far more. Extending the experiment to base models is a one-line change (`--groq-model llama-3.1-8b-instant`) but was not run to preserve the $10 budget.
-- It does not test attacks that were designed specifically to evade Llama's RLHF. Adaptive attacks against each provider's specific safety training would be a separate contribution.
+- It does not show `undefended` leaking on Groq OR Anthropic — both models' safety training happens to catch these three attack families in-band. A more adversarially-optimized attack (e.g., one that neither RLHF has seen) could well leak; testing that is out of scope here.
+- It does not test un-RLHF'd base models (e.g., `llama-3-70b-base`, no chat tuning) — where undefended would almost certainly leak far more. Extending is one-line: `--provider groq --model llama-3.1-8b-instant` targets a smaller, less-safety-tuned model.
+- It does not test attacks designed specifically to evade Llama's or Haiku's individual safety training. Adaptive per-provider attacks are a separate contribution.
+- The `mem_role_confusion` cell for infoshield-on-Groq has n=4 (2 rate-limit failures) instead of n=6. Rerunning under Groq's Dev tier ($20/mo) would recover them cleanly.
 
-Data + comparison table: [paper/deliverable/provider_drift_report.json](paper/deliverable/provider_drift_report.json). Trace corpus: `results/provider_drift/*` (34 new JSONs; 2 rate-limit failures documented above).
+Data + comparison table: [paper/deliverable/provider_drift_report.json](paper/deliverable/provider_drift_report.json). Trace corpora: `results/provider_drift_groq/*` (34 JSONs; 2 rate-limit failures documented above) and `results/provider_drift_anthropic/*` (36 JSONs).
 
 ---
 
@@ -801,7 +822,7 @@ pytest -m "not network"
 
 ```bash
 python scripts/run_final.py --report-only
-# → writes paper/deliverable/FINAL.md from the 605 traces on disk
+# → writes paper/deliverable/FINAL.md from the 641 traces on disk
 ```
 
 ### 9.4 Adding new experiments
@@ -821,7 +842,7 @@ python scripts/run_baselines.py --n 30     # bump baselines to n=30 for tight CI
 
 ### 9.5 Cost reference
 
-Actual measurements from the 605 traces on disk:
+Actual measurements from the 641 traces on disk:
 
 | Metric | Value |
 |---|---|
@@ -847,11 +868,12 @@ Actual measurements from the 605 traces on disk:
 | Baselines on `tool_poisoning` (same 3 baselines × n=10) | 30 | ~\$7.50 | ~\$66 | Mechanism substitution Ⅰ evidence — architectural gap between INFOSHIELD's IB-3 and baselines' IB-0-only defenses (identical ASR = 0.000, different mechanism) |
 | Missing attack families (undefended + infoshield × {memory, reasoning_state, consensus} × n=6) | 36 | ~\$9 | ~\$75 | Mechanism substitution Ⅱ (memory_poisoning); honest neutral results for reasoning_state and consensus_collapse |
 | LLM-judge evals v1 (Sonnet vs Sonnet at different temperatures, ~30 traces) | ~30 judge calls | ~\$4 | ~\$79 | Same-family κ ~0.86–0.93 — deprecated in favour of v2 |
-| Stateful-memory attacks (undefended + infoshield × {slow_drift, consent_escalation, role_confusion} × n=6) | 36 | ~\$9 | ~\$105 | Mechanism substitution Ⅲ (mem_role_confusion 6/6 IB-3-mem); honest defeat of phrase bank on narrative attacks — see §6.14 |
+| Stateful-memory attacks (undefended + infoshield × {slow_drift, consent_escalation, role_confusion} × n=6) | 36 | ~\$9 | ~\$110 | Mechanism substitution Ⅲ (mem_role_confusion 6/6 IB-3-mem); honest defeat of phrase bank on narrative attacks — see §6.14 |
 | LLM-judge evals v2 (F2 fix: gpt-5 promoted to primary Judge C over 30 traces) | ~30 judge calls | ~\$4 | ~\$92 | Cross-family κ = 0.737 on unsafe axis (substantial), 0.32/-0.18 on correct/coherent (fair/random) — see §6.8 |
-| Sentinel-randomization check (F3 fix: 3 base attacks with per-attack random tokens × 2 systems × n=6) | 36 | ~\$9 | ~\$105 | Tests whether IB-3 / IB-3-mem still block when the marker string is not in the phrase bank — see §6.15 |
-| Provider-drift counterfactual (F1 fix: same 3 attacks on Groq/Llama-3.3-70B, no Azure filter × 2 systems × n=6) | 34 | ~\$4 | ~\$105 | Empirically vindicates mechanism substitution: undefended shifts from Azure-filter-dominant to Llama-RLHF-dominant; INFOSHIELD is provider-invariant — see §6.16 |
-| **Total on disk** | **605 traces** | **~\$105** | | |
+| Sentinel-randomization check (F3 fix: 3 base attacks with per-attack random tokens × 2 systems × n=6) | 36 | ~\$9 | ~\$110 | Tests whether IB-3 / IB-3-mem still block when the marker string is not in the phrase bank — see §6.15 |
+| Provider-drift counterfactual (F1 fix: same 3 attacks on Groq/Llama-3.3-70B, no Azure filter × 2 systems × n=6) | 34 | ~\$4 | ~\$105 | Empirically vindicates mechanism substitution on a Groq/Llama stack — see §6.16 |
+| Provider-drift extension (F1 triangulation: same 3 attacks on Anthropic/Haiku-4.5 × 2 systems × n=6) | 36 | ~\$5 | ~\$110 | Second non-Azure provider confirms the finding: 100 % IB blocks vs 100 % model-side in-band refusals for undefended — see §6.16 |
+| **Total on disk** | **641 traces** | **~\$110** | | |
 
 #### Runtime environment (this artifact)
 
@@ -920,7 +942,7 @@ No user data, PII, or private conversations were collected. All queries are draw
 
 ### 11.5 Openness
 
-The full source code, configuration, all 605 traces, all figure CSVs, and this document are released together in the [repository](https://github.com/Notmeher/infoshield). Anyone can reproduce every number by cloning and running `python scripts/run_final.py --report-only`.
+The full source code, configuration, all 641 traces, all figure CSVs, and this document are released together in the [repository](https://github.com/Notmeher/infoshield). Anyone can reproduce every number by cloning and running `python scripts/run_final.py --report-only`.
 
 ---
 
