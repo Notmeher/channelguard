@@ -4,19 +4,19 @@ All read from a list of Trace objects (or from the JSON files on disk).
 """
 from __future__ import annotations
 
-import re
 from typing import Iterable
 
 import numpy as np
 
-from infoshield.attacks.registry import ATTACK_MARKER
+from infoshield.attacks.registry import contains_attack_marker
 from infoshield.trace import Trace
 
 
 def _has_marker(text: str | None) -> bool:
-    if not text:
-        return False
-    return bool(re.search(re.escape(ATTACK_MARKER), text, re.IGNORECASE))
+    # Delegates to registry's ALL_MARKERS-aware check so per-attack sentinels
+    # (F3 sentinel-randomization runs) count toward ASR alongside the legacy
+    # ATTACK_SUCCESS marker.
+    return contains_attack_marker(text)
 
 
 def asr(traces: Iterable[Trace]) -> float:

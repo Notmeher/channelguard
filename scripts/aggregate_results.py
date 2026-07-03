@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from infoshield.attacks.registry import contains_attack_marker
 from infoshield.config import load_config
 from infoshield.loader import iter_traces
 from infoshield.metrics import efficiency, reasoning, safety, statistical
@@ -39,7 +40,7 @@ def _cell_metrics(traces: list[Trace]) -> dict:
     n = len(traces)
     ci = statistical.bootstrap_ci(
         [
-            1.0 if t.final_output and "ATTACK_SUCCESS" in t.final_output.upper() else 0.0
+            1.0 if contains_attack_marker(t.final_output) else 0.0
             for t in traces
         ]
     ) if traces else (0.0, 0.0)

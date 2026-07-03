@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from infoshield.attacks.registry import contains_attack_marker
 from infoshield.config import load_config
 from infoshield.loader import iter_traces
 from infoshield.trace import Trace
@@ -42,7 +43,7 @@ CLASS_COLORS = {
 
 
 def _classify_trace(t: Trace) -> str:
-    if t.final_output and "ATTACK_SUCCESS" in t.final_output.upper():
+    if contains_attack_marker(t.final_output):
         return "leaked"
     if any(g.status == "BLOCKED" for g in t.gate_decisions):
         return "ib_blocked"

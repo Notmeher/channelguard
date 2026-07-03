@@ -30,18 +30,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from infoshield.attacks.registry import contains_attack_marker
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_ROOT = REPO_ROOT / "results"
 DELIVERABLE_FIGS = REPO_ROOT / "paper" / "deliverable" / "figures"
 
-ATTACK_MARKER = "ATTACK_SUCCESS"
 AZURE_SENTINEL = "[AZURE_CONTENT_FILTER_REFUSED]"
 
 
 def _classify_trace(trace: dict) -> str:
     """Mirror run_final.py's priority-ordered attribution classifier."""
-    final = (trace.get("final_output") or "").upper()
-    if ATTACK_MARKER.upper() in final:
+    if contains_attack_marker(trace.get("final_output")):
         return "leaked"
     for g in trace.get("gate_decisions", []) or []:
         if g.get("status") == "BLOCKED":

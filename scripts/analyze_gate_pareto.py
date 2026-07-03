@@ -41,14 +41,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from infoshield.attacks.registry import contains_attack_marker
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_ROOT = REPO_ROOT / "results"
 DELIVERABLE_FIGS = REPO_ROOT / "paper" / "deliverable" / "figures"
 
 # Only consider real IB gates (skip IB-3-mem which fires only under memory_poisoning).
 CANDIDATE_GATES = ["IB-0", "IB-1", "IB-2", "IB-3", "IB-4", "IB-5"]
-
-ATTACK_MARKER = "ATTACK_SUCCESS"
 
 
 def _iter_trace_files(root: Path):
@@ -122,8 +122,7 @@ def _simulate_subset(traces: list[dict], subset: tuple[str, ...],
 
     leaks = 0
     for t in traces:
-        final = (t.get("final_output") or "").upper()
-        originally_leaked = ATTACK_MARKER.upper() in final
+        originally_leaked = contains_attack_marker(t.get("final_output"))
         # Find gate blocks in this trace.
         blocked_gates = [g.get("gate_id") for g in t.get("gate_decisions", []) or []
                          if g.get("status") == "BLOCKED"]

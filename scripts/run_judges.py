@@ -12,10 +12,11 @@ but never invoked in the report:
      "is the reasoning chain internally consistent?" over the same sample.
      ~$0.01 per trace × 30 traces = ~$0.30
 
-  3. Two-judge borderline eval ([metrics/llm_eval.py]): Opus + Sonnet each
-     answer 3 yes/no questions about borderline traces. Disagreements are
-     tiebroken by gpt-5. Reports Cohen's κ between the two Claude judges.
-     ~$0.08 per trace × 30 borderline traces = ~$2.40
+  3. Three-judge borderline eval ([metrics/llm_eval.py]): Sonnet(T=0) +
+     Sonnet(T=1) + gpt-5 each answer 3 yes/no questions about borderline
+     traces. Reports pairwise Cohen's κ. Sonnet(T=0) vs gpt-5 is the
+     cross-family agreement — the primary methodology validation metric.
+     ~$0.10 per trace × 30 borderline traces = ~$3.00
 
 Sample selection:
   - Uses `is_borderline(trace)` from `metrics/llm_eval.py` to pick 30 traces
@@ -56,7 +57,7 @@ JUDGES_JSON = DELIVERABLE / "judges_report.json"
 # Rough cost per judged trace, for the dry-run estimate.
 COST_HALLUCINATION_USD = 0.03    # Claude Opus, ~1 short prompt+response
 COST_CONSISTENCY_USD = 0.01      # Claude Sonnet, ~1 short prompt+response
-COST_TWO_JUDGE_USD = 0.08        # Opus + Sonnet + possible gpt-5 tiebreaker
+COST_TWO_JUDGE_USD = 0.10        # Sonnet(T=0) + Sonnet(T=1) + gpt-5 = 3 primary judges
 
 
 def main():
@@ -128,7 +129,7 @@ def main():
     print(f"  multi_step_consistency = {mc:.3f}")
 
     # --- Two-judge borderline eval + Cohen's κ --------------------------
-    print("\n===== two_judge_eval (Opus + Sonnet + gpt-5 tiebreaker) =====")
+    print("\n===== three-judge eval (Sonnet@T=0, Sonnet@T=1, gpt-5) =====")
     two_judge = llm_eval.run_llm_eval(
         borderline,
         judge_opus=judge_opus,
@@ -138,13 +139,24 @@ def main():
     )
     result["two_judge_eval"] = {
         "n": two_judge["n"],
-        "cohens_kappa": two_judge["kappa"],
+        "cohens_kappa": two_judge["kappa"],          # legacy: A vs B
+        "cohens_kappa_pairs": two_judge.get("kappa_pairs", {}),
+        "judge_names": two_judge.get("judge_names", {}),
         "final_labels": two_judge["labels"],
     }
     print(f"  n = {two_judge['n']}")
-    print(f"  Cohen's κ (Opus vs Sonnet):")
-    for axis, k in two_judge["kappa"].items():
-        print(f"    {axis:12} κ = {k:.3f}")
+    pairs = two_judge.get("kappa_pairs", {})
+    if pairs:
+        print(f"  Judges: A={two_judge['judge_names']['A']}  "
+              f"B={two_judge['judge_names']['B']}  C={two_judge['judge_names']['C']}")
+        for pair_name, per_axis in pairs.items():
+            print(f"  Cohen's κ ({pair_name}):")
+            for axis, k in per_axis.items():
+                print(f"    {axis:12} κ = {k:.3f}")
+    else:
+        print(f"  Cohen's κ (A vs B):")
+        for axis, k in two_judge["kappa"].items():
+            print(f"    {axis:12} κ = {k:.3f}")
 
     # --- Persist --------------------------------------------------------
     duration = time.time() - t0

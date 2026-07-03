@@ -67,7 +67,7 @@ python scripts/analyze_gates.py         # ROC/AUC + threshold sweep (free, disk-
 ```
 
 Wall-clock: **~20 min** for `run_final.py` at `pipeline.parallel_samples=8`.
-Cumulative spend to produce the current 535-trace artifact: **~\$88**.
+Cumulative spend to produce the current 571-trace artifact: **~\$101**.
 
 Output goes to [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md).
 
@@ -154,12 +154,19 @@ See [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) for the full
 auto-generated report, and [INFOSHIELD.md](INFOSHIELD.md) for the full
 research write-up (motivation, design, related work, discussion, ethics).
 
-**One-line summary** (over **535 traces**, ~\$88 total spend, 9 attack
+**One-line summary** (over **571 traces**, ~\$101 total spend, 9 attack
 families, 5 systems): INFOSHIELD reduces `prompt_injection_strong` ASR by
-33 % (0.300 → 0.200) and provides **two uncontested deterministic wins** —
-it blocks **30/30 `tool_poisoning`** attempts at IB-3 and **6/6
-`memory_poisoning`** attempts at IB-3-mem, whereas undefended relies on
-Azure's stochastic filter for both. GSM8K reasoning accuracy is preserved
-(+6.7 pp CTCA), and INFOSHIELD runs **~7× faster** than undefended on
-adversarial workloads because IB gates short-circuit the pipeline before
-spending expensive gpt-5 / Claude calls.
+33 % (0.300 → 0.200) — its only headline ASR win — and demonstrates
+**three cases of mechanism substitution** on `tool_poisoning`,
+`memory_poisoning`, and `mem_role_confusion`: raw ASR is tied at 0.000
+with the undefended baseline, but INFOSHIELD achieves the block
+deterministically at the application layer (IB-3 or IB-3-mem, 30/30 +
+6/6 + 6/6) whereas undefended relies on Azure's stochastic server-side
+filter (24/30, 4/6, 4/6). GSM8K reasoning accuracy is preserved
+(+6.7 pp CTCA at n=15, CI ~±25 pp — not significant on its own), and
+INFOSHIELD runs **~7× faster** than undefended on adversarial workloads
+because IB gates short-circuit the pipeline before spending expensive
+gpt-5 / Claude calls; benign workloads have near-identical latency.
+See §7.5 of [INFOSHIELD.md](INFOSHIELD.md) for the honest deployment
+trade-off (mechanism substitution is only valuable if you distrust
+provider filters).
