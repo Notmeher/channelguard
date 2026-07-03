@@ -55,6 +55,13 @@ LLM_GUARD_EXTRA_USD = 0.03
 
 ATTACKS = ["prompt_injection_strong", "adaptive_paraphrase"]
 
+# Valid attacks (must exist in infoshield.attacks.ATTACKS registry).
+VALID_ATTACKS = {
+    "prompt_injection_strong", "prompt_injection_medium", "prompt_injection_weak",
+    "tool_poisoning", "memory_poisoning", "reasoning_state_injection",
+    "consensus_collapse", "adaptive_paraphrase", "none",
+}
+
 # (system_name, one-line description, estimated cost per run)
 BASELINES = [
     ("ibprotector",
@@ -134,9 +141,21 @@ def main():
         "--systems", nargs="+", default=None,
         help="Subset of baselines to run. Default: all three.",
     )
+    ap.add_argument(
+        "--attacks", nargs="+", default=None,
+        help=("Attacks to test. Default: prompt_injection_strong + adaptive_paraphrase. "
+              "Any subset of the ATTACKS registry, e.g. `--attacks tool_poisoning`."),
+    )
     args = ap.parse_args()
 
     cfg = load_config()
+
+    # Filter attacks
+    attacks = args.attacks if args.attacks else ATTACKS
+    unknown = set(attacks) - VALID_ATTACKS
+    if unknown:
+        print(f"[error] unknown attacks: {sorted(unknown)}. Valid: {sorted(VALID_ATTACKS)}")
+        sys.exit(1)
 
     # Filter baselines
     active = BASELINES
@@ -152,13 +171,13 @@ def main():
     # Estimate
     plan = []
     for system, desc, cost_per_run in active:
-        new = _est_new_runs(cfg, system, ATTACKS, args.n, args.seed)
+        new = _est_new_runs(cfg, system, attacks, args.n, args.seed)
         plan.append({
             "system": system, "desc": desc,
             "new_runs": new, "est_cost": new * cost_per_run,
         })
 
-    _print_plan(plan, ATTACKS, args.n, args.seed)
+    _print_plan(plan, attacks, args.n, args.seed)
 
     if args.dry_run:
         return
@@ -176,7 +195,7 @@ def main():
     all_stats: dict[str, dict] = {}
 
     for system, desc, _cost in active:
-        print(f"\n--- {system} on {ATTACKS} ---")
+        print(f"\n--- {system} on {attacks} ---")
         t0 = time.time()
 
         def _event_cb(evt, sys=system):
@@ -188,7 +207,7 @@ def main():
             dataset_name="hotpot_qa",
             samples=samples,
             systems=[system],
-            attacks=ATTACKS,
+            attacks=attacks,
             seeds=[args.seed],
             resume=True,
             on_error="log",

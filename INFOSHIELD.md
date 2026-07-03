@@ -6,7 +6,7 @@
 
 ## Abstract
 
-We present INFOSHIELD, a defense-in-depth framework for multi-agent LLM systems that inserts six *information-bottleneck (IB) gates* at every semantic boundary of a `planner → workers → verifier → synthesizer` pipeline. Each gate scores incoming text against an adversarial-phrase bank using sentence embeddings and either **passes**, **compresses** (keeps first N sentences), or **blocks** it. Combined with a Monte-Carlo uncertainty-aware verifier, this yields deterministic, in-application blocking that is complementary to — and stricter than — provider-side content filters. On **433 pipeline traces** spanning three attack families (`prompt_injection_strong`, `tool_poisoning`, `adaptive_paraphrase`) plus GSM8K reasoning-fidelity tests, INFOSHIELD reduces prompt-injection Attack Success Rate (ASR) by 33 % relative (0.300 → 0.200), catches **17 out of 30** injection attempts that reach the LLM through the provider filter, and blocks **30 out of 30** tool-poisoning attempts deterministically at the tool-output boundary. GSM8K accuracy is preserved (+6.7 pp CTCA), indicating no utility loss from the gates. A comparison against three published input-only baselines (**IBProtector**, **LLM-Guard**, **Perplexity-Filter**) at n=6 shows that simple input-boundary defenses can achieve comparable or lower ASR on the two input-facing attacks tested; the CIs overlap and the difference is not statistically significant. Crucially, **none of the baselines can defend the tool-output boundary** — they are architecturally single-boundary. INFOSHIELD's *unique* contribution is deterministic inter-agent coverage. We report an honest limitation: a white-box adaptive-paraphrase attack that avoids the phrase bank still succeeds at 0.667 ASR against INFOSHIELD (and is caught by perplexity threshold by coincidence, since the paraphrase happens to have high token-level perplexity).
+We present INFOSHIELD, a defense-in-depth framework for multi-agent LLM systems that inserts six *information-bottleneck (IB) gates* at every semantic boundary of a `planner → workers → verifier → synthesizer` pipeline. Each gate scores incoming text against an adversarial-phrase bank using sentence embeddings and either **passes**, **compresses** (keeps first N sentences), or **blocks** it. Combined with a Monte-Carlo uncertainty-aware verifier, this yields deterministic, in-application blocking that is complementary to — and stricter than — provider-side content filters. On **463 pipeline traces** spanning three attack families (`prompt_injection_strong`, `tool_poisoning`, `adaptive_paraphrase`) plus GSM8K reasoning-fidelity tests, INFOSHIELD reduces prompt-injection Attack Success Rate (ASR) by 33 % relative (0.300 → 0.200), catches **17 out of 30** injection attempts that reach the LLM through the provider filter, and blocks **30 out of 30** tool-poisoning attempts deterministically at the tool-output boundary. **A head-to-head comparison against three published input-only baselines (IBProtector, LLM-Guard, Perplexity-Filter) demonstrates the architectural argument directly**: on `tool_poisoning`, all four systems achieve ASR = 0.000, but attribution shows that IBProtector and LLM-Guard block 0/10 at their own gate (relying entirely on Azure's stochastic filter for 10/10 catches), while INFOSHIELD blocks 30/30 at IB-3 with zero reliance on the provider. GSM8K accuracy is preserved (+6.7 pp CTCA), indicating no utility loss from the gates. We report an honest limitation: a white-box adaptive-paraphrase attack that avoids the phrase bank still succeeds at 0.667 ASR against INFOSHIELD (and is caught by perplexity threshold by coincidence, since the paraphrase happens to have high token-level perplexity).
 
 ---
 
@@ -241,11 +241,11 @@ Additional metrics defined in [src/infoshield/metrics/](src/infoshield/metrics/)
 
 ## 6. Results
 
-Total dataset: **433 pipeline traces** on disk. Experiment breakdown:
+Total dataset: **463 pipeline traces** on disk. Experiment breakdown:
 
 | Experiment | # traces |
 |---|---:|
-| `main` (5 systems × 2–4 attacks × 6–30) | 275 |
+| `main` (5 systems × 2–4 attacks × 6–30) | 305 |
 | `ablation` (7 configs × 2 attacks × 6) | 84 |
 | `beta_sweep` (6 β × 1 attack × 6) | 36 |
 | `gsm8k` (2 systems × 1 attack × 15) | 30 |
@@ -258,9 +258,9 @@ Attack Success Rate. Lower is better.
 | System | `adaptive_paraphrase` | `none` | `prompt_injection_strong` | `tool_poisoning` |
 | :--- | ---: | ---: | ---: | ---: |
 | `undefended` | 0.690 (n=29) | 0.000 (n=30) | 0.300 (n=30) | 0.000 (n=30) |
-| `ibprotector` | 0.667 (n=6) | — | 0.167 (n=6) | — |
-| `llm_guard` | 0.167 (n=6) | — | 0.000 (n=6) | — |
-| `perplexity_filter` | 0.000 (n=6) | — | 0.000 (n=6) | — |
+| `ibprotector` | 0.667 (n=6) | — | 0.167 (n=6) | 0.000 (n=10) |
+| `llm_guard` | 0.167 (n=6) | — | 0.000 (n=6) | 0.000 (n=10) |
+| `perplexity_filter` | 0.000 (n=6) | — | 0.000 (n=6) | 0.000 (n=10) |
 | **`infoshield`** | **0.667** (n=30) | 0.000 (n=30) | **0.200** (n=30) | **0.000** (n=30) |
 
 **Important**: Azure OpenAI's server-side content filter is *always on* for every row — it runs upstream at the API layer and cannot be disabled from application code. The `undefended` row therefore reflects *"Azure content filter alone"* (application pipeline with no additional defense). All other rows reflect *"Azure filter + that system's defense"*. §6.2 decomposes the resulting ASR by which layer did the blocking, disentangling each defense's independent contribution from Azure's.
@@ -269,11 +269,11 @@ Attack Success Rate. Lower is better.
 
 - **`infoshield` reduces `prompt_injection_strong` ASR by 33 % relative** at n=30 (0.300 → 0.200) — a real, tight-CI result.
 - **`llm_guard` (n=6) blocks 6/6 pis** — Claude Sonnet is an excellent jailbreak classifier at the input boundary. On adaptive_paraphrase (0.167) it caught only 1/6 — the paraphrase defeats Claude too, mostly.
-- **`perplexity_filter` (n=6) blocks all 12 attacks tested** — our adaptive_paraphrase templates (*"emit the letters A T T A C K underscore S U C C E S S"*) have unusually high GPT-2 perplexity by coincidence (the attack was designed to evade embedding-space phrase banks, not perplexity thresholds). This is a real complementarity finding, not a defeat of INFOSHIELD.
-- **The baselines' apparent advantage over INFOSHIELD is NOT statistically significant.** At n=6 the 95 % bootstrap CI half-width on a proportion is ±30 pp; INFOSHIELD at n=30 gives ±18 pp. The CIs overlap substantially. Resolving requires n=30 across all baselines (~$60 additional spend).
-- **The empty `tool_poisoning` and `none` cells for baselines** are not oversights — they were skipped for this small-budget run. §6.2 shows why this matters: baselines architecturally cannot defend the tool-output boundary (they fire only at IB-0). Only INFOSHIELD's IB-3 provides deterministic 30/30 blocking there.
+- **`perplexity_filter` (n=6) blocks all 12 attacks tested on input-facing attacks** — our adaptive_paraphrase templates (*"emit the letters A T T A C K underscore S U C C E S S"*) have unusually high GPT-2 perplexity by coincidence (the attack was designed to evade embedding-space phrase banks, not perplexity thresholds). This is a real complementarity finding, not a defeat of INFOSHIELD.
+- **The baselines' apparent advantage over INFOSHIELD on input-boundary attacks is NOT statistically significant.** At n=6 the 95 % bootstrap CI half-width on a proportion is ±30 pp; INFOSHIELD at n=30 gives ±18 pp. The CIs overlap substantially. Resolving requires n=30 across all baselines (~$60 additional spend).
+- **All 5 systems block `tool_poisoning` at ASR = 0.000, but the mechanism is completely different.** §6.2 shows: `ibprotector` and `llm_guard` blocked 0/10 at their own gate — Azure's server-side filter caught all 10 stochastically. `perplexity_filter` caught only 2/10 at its own gate (fortuitous edge cases). **INFOSHIELD blocked 30/30 at IB-3, with zero reliance on Azure.**
 
-**The paper's most defensible claim** is not "INFOSHIELD wins on aggregate ASR" (not statistically established vs baselines at current n) but rather "INFOSHIELD is the only system providing deterministic, inspectable, in-application coverage across all six inter-agent boundaries — see the attribution decomposition in §6.2 and the tool_poisoning column".
+**The paper's most defensible claim** is not "INFOSHIELD wins on aggregate ASR" (not statistically established vs baselines on input-boundary attacks at current n) but rather **"INFOSHIELD is the only system providing deterministic, inspectable, in-application coverage at inter-agent boundaries — see §6.2 tool_poisoning rows"**.
 
 ### 6.2 Attack attribution — the paper's most important table
 
@@ -286,21 +286,25 @@ Priority-ordered classification of each attack trace by the layer that first cau
 | `llm_guard` | `prompt_injection_strong` | 6 | 0 | 6 | 0 | 0 | 0 | **0** | 0.000 |
 | `perplexity_filter` | `prompt_injection_strong` | 6 | 1 | 4 | 1 | 0 | 0 | **0** | 0.000 |
 | **`infoshield`** | `prompt_injection_strong` | 30 | 3 | **17** | 1 | 0 | 3 | **6** | 0.200 |
-| `undefended` | `tool_poisoning` | 30 | 24 | 0 | 4 | 0 | 2 | **0** | 0.000 |
-| **`infoshield`** | `tool_poisoning` | 30 | 0 | **30** | 0 | 0 | 0 | **0** | 0.000 |
+| `undefended` | `tool_poisoning` | 30 | **24** | 0 | 4 | 0 | 2 | **0** | 0.000 |
+| `ibprotector` | `tool_poisoning` | 10 | **10** | **0** | 0 | 0 | 0 | **0** | 0.000 |
+| `llm_guard` | `tool_poisoning` | 10 | **10** | **0** | 0 | 0 | 0 | **0** | 0.000 |
+| `perplexity_filter` | `tool_poisoning` | 10 | 7 | 2 | 0 | 0 | 1 | **0** | 0.000 |
+| **`infoshield`** | `tool_poisoning` | 30 | **0** | **30** | 0 | 0 | 0 | **0** | 0.000 |
 | `undefended` | `adaptive_paraphrase` | 29 | 0 | 0 | 6 | 0 | 3 | **20** | 0.690 |
 | `ibprotector` | `adaptive_paraphrase` | 6 | 0 | 0 | 2 | 0 | 0 | **4** | 0.667 |
 | `llm_guard` | `adaptive_paraphrase` | 6 | 0 | 1 | 1 | 0 | 3 | **1** | 0.167 |
 | `perplexity_filter` | `adaptive_paraphrase` | 6 | 0 | 6 | 0 | 0 | 0 | **0** | 0.000 |
 | **`infoshield`** | `adaptive_paraphrase` | 30 | 0 | 3 | 5 | 0 | 2 | **20** | 0.667 |
 
-Five quantitative claims survive this table:
+Six quantitative claims survive this table:
 
 1. **`prompt_injection_strong`, INFOSHIELD vs undefended**: INFOSHIELD's own IB gates catch **17/30 attacks** (57 %) that the provider filter alone lets through. The `azure` column drops from 10 (undefended) to 3 (infoshield) because IB fires first on those samples; the `ib` column absorbs them plus adds 7 more. Net: 3 fewer leaks (9 → 6).
-2. **`tool_poisoning`, INFOSHIELD's uncontested win**: INFOSHIELD's IB-3 provides **deterministic 30/30 blocking** at the tool boundary. Undefended relies on Azure's stochastic filter, which caught 24/30; the remaining 6 escaped Azure and were caught by the verifier (4) or answered benignly by coincidence (2). **The three baselines have no IB-3 (they only fire at input) and are therefore architecturally unable to defend this boundary** — they would rely entirely on the same Azure filter as undefended. Both systems achieve ASR = 0.000, but only INFOSHIELD's coverage is deterministic and independent of provider policy drift.
+2. **`tool_poisoning`, INFOSHIELD's uncontested win — the smoking gun**: All 5 systems achieve ASR = 0.000, but the mechanism is architecturally different. `undefended`, `ibprotector`, and `llm_guard` rely on Azure's stochastic server-side filter to catch every attempt (24/30, 10/10, 10/10 respectively). Their own IB gates contribute **0 blocks** — architecturally impossible to fire on the tool boundary since they only defend the input boundary. `perplexity_filter` catches 2/10 at its own gate (edge cases where HotpotQA questions happen to have high perplexity), still relies on Azure for 7/10. **`infoshield` catches 30/30 at IB-3 with zero reliance on Azure** — fully deterministic, application-level, inspectable, and independent of provider policy drift.
 3. **`adaptive_paraphrase`, everyone's limitation**: The paraphrase attack evades INFOSHIELD's IB gates (3/30 caught), evades ibprotector's IB-0 (0/6 caught), evades Azure (0 caught across systems), and mostly evades Claude classifier (1/6 caught for llm_guard). Only perplexity_filter catches it (6/6) — by coincidence, because our paraphrase templates happen to have unusual token distributions. **This is a real defense-in-depth finding**: no single approach dominates; ensembling different filters (embedding-based + perplexity-based + classifier-based) would strictly improve coverage.
-4. **Baseline coverage** (from n=6 counts, direction-only): `llm_guard`'s Claude classifier at IB-0 blocks 6/6 pis and 1/6 adaptive; `perplexity_filter`'s GPT-2 threshold at IB-0 blocks 10/12 total; `ibprotector`'s phrase-bank at IB-0 catches 4/6 pis and 0/6 adaptive (INFOSHIELD's IB gates are drawn from the same design, so this is a lower-bound consistency check on our own implementation).
+4. **Baseline coverage** (from n=6 counts on input-facing attacks, direction-only): `llm_guard`'s Claude classifier at IB-0 blocks 6/6 pis and 1/6 adaptive; `perplexity_filter`'s GPT-2 threshold at IB-0 blocks 10/12 input-facing + 2/10 tool-poisoning; `ibprotector`'s phrase-bank at IB-0 catches 4/6 pis and 0/6 adaptive (INFOSHIELD's IB-0 gate is drawn from the same design, so this is a lower-bound consistency check on our own implementation).
 5. **Complementarity, not competition**: The layers catch *different subsets* of attacks. On `prompt_injection_strong`, Claude classifier catches 6/6 that IB-0 phrase-bank catches only 4/6 of; perplexity catches paraphrase attacks the phrase-bank misses. An ensemble that composes these gates would produce a strictly stronger defense than any individual approach at similar cost.
+6. **Architectural gap is unbridgeable without a redesign**: Baselines can be tuned to improve their IB-0 detection rate, but they cannot be tuned to defend IB-3 (tool boundary), IB-2 (worker output), IB-5 (synthesizer input), etc. INFOSHIELD's contribution is not a better *classifier* at one boundary but *coverage of boundaries none of the baselines were designed to touch*. The `tool_poisoning` attribution row (claim #2) is the paper's cleanest empirical demonstration of this.
 
 ### 6.3 Reasoning fidelity — GSM8K CTCA (no attack)
 
@@ -392,11 +396,21 @@ A follow-up experiment at n=100 on both GSM8K and a second reasoning benchmark (
 
 ### 7.5 Baselines and defense-in-depth (from §6.2)
 
-With three input-boundary baselines added (§6.1, §6.2), the paper's framing shifts from *"INFOSHIELD wins on aggregate ASR"* to *"INFOSHIELD is the only system that provides coverage where the multi-agent surface actually is"*. Three concrete observations support this reframing:
+With three input-boundary baselines added (§6.1, §6.2) — including a targeted `tool_poisoning` run designed to expose the architectural gap — the paper's framing shifts from *"INFOSHIELD wins on aggregate ASR"* to *"INFOSHIELD is the only system that provides coverage where the multi-agent surface actually is"*. Three concrete observations support this reframing:
 
-1. **On single-boundary attacks (`prompt_injection_strong`, `adaptive_paraphrase`), no defense dominates.** At n=6, `llm_guard` blocks 6/6 pis, `perplexity_filter` blocks 10/12, and INFOSHIELD blocks 24/30 pis + 10/30 adaptive. The CIs overlap. Different mechanisms (Claude classifier, GPT-2 perplexity, phrase-bank embedding similarity) catch *different subsets* of attacks. This is direct evidence for defense-in-depth: an ensemble strictly beats any component.
+1. **On input-boundary attacks (`prompt_injection_strong`, `adaptive_paraphrase`), no defense dominates.** At n=6, `llm_guard` blocks 6/6 pis, `perplexity_filter` blocks 10/12, and INFOSHIELD blocks 24/30 pis + 10/30 adaptive. The CIs overlap. Different mechanisms (Claude classifier, GPT-2 perplexity, phrase-bank embedding similarity) catch *different subsets* of attacks. This is direct evidence for defense-in-depth: an ensemble strictly beats any component.
 
-2. **On multi-agent attacks (`tool_poisoning`), only INFOSHIELD provides in-application coverage.** All three baselines have their gate at IB-0 (input) only. They cannot see, and cannot block, the poisoned string returned by the mock tool at the worker boundary. Undefended relied on Azure's server-side filter catching 24/30 stochastically. INFOSHIELD's IB-3 catches 30/30 deterministically. **This is the paper's uncontested contribution.**
+2. **On multi-agent attacks (`tool_poisoning`), only INFOSHIELD provides in-application coverage — the smoking gun.** All 5 systems achieve ASR = 0.000, but attribution shows radically different mechanisms:
+
+   | System | n | Own gate caught | Azure caught | Deterministic? |
+   |---|---:|---:|---:|---|
+   | `undefended` | 30 | 0 (no gate) | 24 | No |
+   | `ibprotector` | 10 | **0** | 10 | No (0 own defense) |
+   | `llm_guard` | 10 | **0** | 10 | No (0 own defense) |
+   | `perplexity_filter` | 10 | 2 (fortuitous) | 7 | No |
+   | **`infoshield`** | 30 | **30** | 0 | **Yes** |
+
+   All three baselines have their gate at IB-0 (input) only. They cannot see, and cannot block, the poisoned string returned by the mock tool at the worker boundary. **On this attack, IBProtector and LLM-Guard contribute zero application-level defense** — they inherit exactly the same protection profile as undefended (i.e. whatever Azure catches by chance). Only INFOSHIELD's IB-3 catches deterministically.
 
 3. **The complementarity is a real finding, not a defeat.** `perplexity_filter` blocking all 6 adaptive-paraphrase samples is a happy accident: the paraphrase templates targeting the phrase bank happen to have unusual token distributions. The right paper story is not *"perplexity beats INFOSHIELD on paraphrase"* but *"paraphrase attacks that evade one defense may be caught by another; INFOSHIELD's contribution is at a strictly different boundary where perplexity cannot fire"*.
 
@@ -451,7 +465,7 @@ pytest -m "not network"
 
 ```bash
 python scripts/run_final.py --report-only
-# → writes paper/deliverable/FINAL.md from the 433 traces on disk
+# → writes paper/deliverable/FINAL.md from the 463 traces on disk
 ```
 
 ### 9.4 Adding new experiments
@@ -471,15 +485,16 @@ python scripts/run_baselines.py --n 30     # bump baselines to n=30 for tight CI
 
 ### 9.5 Cost reference
 
-Actual measurements from the 433 traces on disk:
+Actual measurements from the 463 traces on disk:
 
 | Metric | Value |
 |---|---|
 | Tokens per run (average) | ~4,000 |
 | API cost per run (gpt-5 + Claude Sonnet, 2026-Q3) | ~\$0.25 |
-| **Total spend to produce this artifact** | **~\$59** |
+| **Total spend to produce this artifact** | **~\$66** |
 | Wall-clock for the 98-run Tier 1 batch (8-way parallel) | ~20 minutes |
 | Wall-clock for the 36-run baselines batch (8-way parallel) | ~8 minutes |
+| Wall-clock for the 30-run tool_poisoning baselines batch (8-way parallel) | ~7 minutes |
 | CI budget for a full 6-baseline × 5-attack × n=100 × 3-seed experiment matrix | ~\$2,200 and ~1–2 days |
 
 #### Spend evolution
@@ -489,8 +504,9 @@ Actual measurements from the 433 traces on disk:
 | Initial proof (main, 2 sys × 4 atk × ~20-30) | ~140 | ~\$25 | ~\$25 | Bootstrap headline result |
 | Tier 1 (topup main + ablation-on-adaptive + β-on-adaptive) | 98 | ~\$25 | ~\$50 | Made ablation informative; enabled attribution |
 | Development smoke traces | 8 | ~\$2 | ~\$52 | Not counted in results |
-| Baselines (ibprotector + llm_guard + perplexity_filter × 2 attacks × n=6) | 36 | ~\$9 | ~\$59 | 3 competitive baselines added to main table |
-| **Total on disk** | **433 traces** | **~\$59** | | |
+| Baselines on input-facing attacks (ibprotector + llm_guard + perplexity_filter × 2 atk × n=6) | 36 | ~\$9 | ~\$59 | 3 competitive baselines added to main table |
+| Baselines on `tool_poisoning` (same 3 baselines × n=10) | 30 | ~\$7.50 | ~\$66 | **The smoking gun** — established architectural gap between INFOSHIELD's IB-3 and baselines' IB-0-only defenses |
+| **Total on disk** | **463 traces** | **~\$66** | | |
 
 #### Runtime environment (this artifact)
 
@@ -549,7 +565,7 @@ No user data, PII, or private conversations were collected. All queries are draw
 
 ### 11.5 Openness
 
-The full source code, configuration, all 433 traces, all figure CSVs, and this document are released together in the [repository](https://github.com/Notmeher/infoshield). Anyone can reproduce every number by cloning and running `python scripts/run_final.py --report-only`.
+The full source code, configuration, all 463 traces, all figure CSVs, and this document are released together in the [repository](https://github.com/Notmeher/infoshield). Anyone can reproduce every number by cloning and running `python scripts/run_final.py --report-only`.
 
 ---
 
