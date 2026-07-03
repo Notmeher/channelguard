@@ -80,12 +80,18 @@ def run_matrix(
     resume: bool = True,
     on_error: str = "log",   # 'log' | 'raise'
     progress_cb: Callable[[str], None] | None = None,
+    event_cb: Callable[[dict], None] | None = None,
 ) -> dict[str, int]:
     """Run every (system, attack, sample, seed) cell.
 
     Skips cells whose JSON exists (resume-from-checkpoint). Within each
     (system, attack, seed) cell, samples run concurrently on a thread pool
     of size cfg.pipeline.parallel_samples.
+
+    Callbacks:
+        progress_cb(str): receives a human-readable one-line status per run.
+        event_cb(dict): receives a structured event per run:
+            {kind, experiment, system, attack, seed, sample_id, path, error, stats}
     """
     stats = {"done": 0, "skipped": 0, "failed": 0}
     parallel = max(1, cfg.pipeline.parallel_samples)
@@ -111,6 +117,19 @@ def run_matrix(
                     )
                     if resume and dest.exists():
                         stats["skipped"] += 1
+                        if event_cb:
+                            with print_lock:
+                                event_cb({
+                                    "kind": "skipped",
+                                    "experiment": experiment,
+                                    "system": system_name,
+                                    "attack": attack_name,
+                                    "seed": seed,
+                                    "sample_id": s["sample_id"],
+                                    "path": str(dest),
+                                    "error": None,
+                                    "stats": dict(stats),
+                                })
                     else:
                         todo.append(s)
 
@@ -141,9 +160,35 @@ def run_matrix(
                             if progress_cb:
                                 with print_lock:
                                     progress_cb(f"[{stats['done']:>5}] {label}")
+                            if event_cb:
+                                with print_lock:
+                                    event_cb({
+                                        "kind": "done",
+                                        "experiment": experiment,
+                                        "system": system_name,
+                                        "attack": attack_name,
+                                        "seed": seed,
+                                        "sample_id": label.rsplit("/", 1)[-1],
+                                        "path": str(_path) if _path else None,
+                                        "error": None,
+                                        "stats": dict(stats),
+                                    })
                         else:
                             stats["failed"] += 1
                             msg = f"[FAIL] {label}: {exc}"
+                            if event_cb:
+                                with print_lock:
+                                    event_cb({
+                                        "kind": "failed",
+                                        "experiment": experiment,
+                                        "system": system_name,
+                                        "attack": attack_name,
+                                        "seed": seed,
+                                        "sample_id": label.rsplit("/", 1)[-1],
+                                        "path": None,
+                                        "error": str(exc),
+                                        "stats": dict(stats),
+                                    })
                             if on_error == "raise":
                                 traceback.print_exc()
                                 raise exc

@@ -7,12 +7,23 @@ Every number below is the mean over the samples in that cell.
 
 | Experiment | System | Attack | # samples |
 | :--- | :--- | :--- | ---: |
+| `ablation` | `infoshield` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib0` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib1` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib2` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib3` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib4` | `prompt_injection_strong` | 6 |
+| `ablation` | `infoshield_no_ib5` | `prompt_injection_strong` | 6 |
+| `gsm8k` | `infoshield` | `none` | 15 |
+| `gsm8k` | `undefended` | `none` | 15 |
+| `main` | `infoshield` | `adaptive_paraphrase` | 30 |
 | `main` | `infoshield` | `none` | 30 |
 | `main` | `infoshield` | `prompt_injection_strong` | 21 |
+| `main` | `infoshield` | `tool_poisoning` | 30 |
 | `main` | `undefended` | `adaptive_paraphrase` | 29 |
 | `main` | `undefended` | `none` | 30 |
 | `main` | `undefended` | `prompt_injection_strong` | 19 |
-| `main` | `undefended` | `tool_poisoning` | 4 |
+| `main` | `undefended` | `tool_poisoning` | 30 |
 | `phase1_smoke` | `undefended` | `none` | 2 |
 | `phase9_smoke` | `infoshield` | `none` | 2 |
 | `phase9_smoke` | `infoshield` | `prompt_injection_strong` | 2 |
@@ -24,14 +35,33 @@ Lower is better. ASR = fraction of runs whose final output contains the injectio
 
 | System | `adaptive_paraphrase` | `none` | `prompt_injection_strong` | `tool_poisoning` |
 | :--- | ---: | ---: | ---: | ---: |
-| `infoshield` | — | 0.000 | 0.238 | — |
+| `infoshield` | 0.667 | 0.000 | 0.238 | 0.000 |
 | `undefended` | 0.690 | 0.000 | 0.474 | 0.000 |
+
+## 3. Reasoning fidelity (GSM8K CTCA, no attack)
+
+| System | CTCA | Delta vs undefended |
+| :--- | ---: | ---: |
+| `infoshield` | 0.933 | +6.7 pp |
+| `undefended` | 0.867 | +0.0 pp |
+
+## 4. Per-layer ablation
+
+| Config | ASR | CTCA |
+| :--- | ---: | ---: |
+| `infoshield` | 0.000 | 0.167 |
+| `infoshield_no_ib0` | 0.000 | 0.167 |
+| `infoshield_no_ib1` | 0.000 | 0.167 |
+| `infoshield_no_ib2` | 0.000 | 0.167 |
+| `infoshield_no_ib3` | 0.000 | 0.167 |
+| `infoshield_no_ib4` | 0.000 | 0.167 |
+| `infoshield_no_ib5` | 0.000 | 0.167 |
 
 ## 8. Efficiency
 
-- Mean latency per run: **71852 ms**
-- Mean tokens per run: **4453**
-- Verifier overhead (fraction of tokens spent on 5-sample MC): **27.6%**
+- Mean latency per run: **63673 ms**
+- Mean tokens per run: **4040**
+- Verifier overhead (fraction of tokens spent on 5-sample MC): **30.3%**
 
 ---
 

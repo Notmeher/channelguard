@@ -216,10 +216,20 @@ def main():
         _run([sys.executable, f])
 
     # 3. Build the consolidated folder.
+    # Preserve run-orchestrator artifacts (progress.jsonl, step_*.md, FINAL.md)
+    # across the wipe so scripts/run_final.py output isn't destroyed.
+    _PRESERVE_PATTERNS = ("progress.jsonl", "step_*.md", "FINAL.md")
+    preserved: dict[str, bytes] = {}
     if DELIVERABLE.exists():
+        for pat in _PRESERVE_PATTERNS:
+            for f in DELIVERABLE.glob(pat):
+                if f.is_file():
+                    preserved[f.name] = f.read_bytes()
         shutil.rmtree(DELIVERABLE)
     DELIVERABLE.mkdir(parents=True)
     (DELIVERABLE / "figures").mkdir()
+    for name, data in preserved.items():
+        (DELIVERABLE / name).write_bytes(data)
 
     # numbers + coverage
     for f in ("numbers.json", "aggregation_summary.json"):

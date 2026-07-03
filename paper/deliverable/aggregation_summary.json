@@ -1,13 +1,10 @@
 {
   "missing_experiments": [
     "advbench",
-    "gsm8k",
     "injecagent",
     "adaptive",
-    "ablation",
     "beta_sweep",
     "multi_framework",
-    "weak_model",
     "phrase_bank_ablation"
   ],
   "underfilled_cells": [
@@ -36,11 +33,75 @@
       "expected": 30
     },
     {
-      "experiment": "main",
-      "system": "undefended",
-      "attack": "tool_poisoning",
+      "experiment": "gsm8k",
+      "system": "infoshield",
+      "attack": "none",
       "seed": 0,
-      "have": 4,
+      "have": 15,
+      "expected": 30
+    },
+    {
+      "experiment": "gsm8k",
+      "system": "undefended",
+      "attack": "none",
+      "seed": 0,
+      "have": 15,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib0",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib1",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib2",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib3",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib4",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
+      "expected": 30
+    },
+    {
+      "experiment": "ablation",
+      "system": "infoshield_no_ib5",
+      "attack": "prompt_injection_strong",
+      "seed": 0,
+      "have": 6,
       "expected": 30
     }
   ],
@@ -48,16 +109,21 @@
     "main/infoshield/prompt_injection_strong/seed_0 (have 21/30)",
     "main/undefended/adaptive_paraphrase/seed_0 (have 29/30)",
     "main/undefended/prompt_injection_strong/seed_0 (have 19/30)",
-    "main/undefended/tool_poisoning/seed_0 (have 4/30)",
+    "gsm8k/infoshield/none/seed_0 (have 15/30)",
+    "gsm8k/undefended/none/seed_0 (have 15/30)",
+    "ablation/infoshield/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib0/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib1/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib2/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib3/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib4/prompt_injection_strong/seed_0 (have 6/30)",
+    "ablation/infoshield_no_ib5/prompt_injection_strong/seed_0 (have 6/30)",
     "advbench/*",
-    "gsm8k/*",
     "injecagent/*",
     "adaptive/*",
-    "ablation/*",
     "beta_sweep/*",
     "multi_framework/*",
-    "weak_model/*",
     "phrase_bank_ablation/*"
   ],
-  "n_traces": 141
+  "n_traces": 299
 }
