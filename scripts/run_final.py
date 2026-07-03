@@ -371,7 +371,14 @@ def _write_final_md(cfg, step_results: list[dict]) -> Path:
 
     attribution = _attribution_by_cell(
         cfg.output_root, "main",
-        only_attacks=["prompt_injection_strong", "tool_poisoning", "adaptive_paraphrase"],
+        only_attacks=[
+            "prompt_injection_strong",
+            "tool_poisoning",
+            "adaptive_paraphrase",
+            "memory_poisoning",
+            "reasoning_state_injection",
+            "consensus_collapse",
+        ],
     )
     if attribution:
         lines.append("| System | Attack | n | azure | ib | verifier | synth | ok | leaked | ASR |")

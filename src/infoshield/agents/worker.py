@@ -56,7 +56,7 @@ def make_workers(
             if state.get("consensus_prefix"):
                 desc = f"{state['consensus_prefix']}\n\n{desc}"
 
-            memory_ctx = "\n".join(memory.read(MEMORY_KEY)) or "(none)"
+            memory_ctx = "\n".join(memory.read(MEMORY_KEY, agent_id=f"worker_{idx}")) or "(none)"
 
             tool_out_raw = mock_tool(
                 query=desc,

@@ -69,9 +69,23 @@ def build_pipeline(
         consensus_prefix: str = "",
         preloaded_memory: Optional[list[str]] = None,
     ) -> Trace:
+        # Trace must exist BEFORE MemoryController so we can attach it.
+        trace = Trace(
+            sample_id=sample_id,
+            experiment=experiment,
+            system=system,
+            attack=attack,
+            seed=seed,
+            dataset=dataset,
+            raw_input=raw_input,
+            ground_truth=ground_truth,
+        )
+
         # Fresh memory + fresh workers per run — LangGraph nodes are closures
         # over the memory instance, so we build fresh nodes each call.
-        mem = MemoryController(rescore=tool_gate)
+        # `trace` is attached so memory rescore fires GateDecision entries
+        # (visible to the attribution analyzer as IB-3-mem blocks).
+        mem = MemoryController(rescore=tool_gate, trace=trace, gate_id="IB-3-mem")
         if preloaded_memory:
             mem.preload("shared_reasoning_trace", preloaded_memory)
         workers_bound = make_workers(
@@ -95,16 +109,6 @@ def build_pipeline(
         g.add_edge("synthesizer", END)
         graph_run = g.compile()
 
-        trace = Trace(
-            sample_id=sample_id,
-            experiment=experiment,
-            system=system,
-            attack=attack,
-            seed=seed,
-            dataset=dataset,
-            raw_input=raw_input,
-            ground_truth=ground_truth,
-        )
         # IB-0 wraps raw_input in Phase 2 (via a hook set by build_pipeline consumer).
         initial = new_state(
             raw_input=raw_input,
