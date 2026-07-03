@@ -99,7 +99,7 @@ python scripts/consolidate.py
 
 # 3. Refresh the five "free-analysis" artifacts (Tier D + novelty tier)
 python scripts/analyze_gates.py                  # ROC/AUC + threshold sensitivity
-python scripts/analyze_certified_radius.py       # certified perturbation radius
+python scripts/analyze_certified_radius.py       # first-order local margin (embedding space)
 python scripts/analyze_argmax_phrases.py         # which phrase caught what
 python scripts/analyze_gate_pareto.py            # cost-conditional Pareto
 python figures/fig8_coverage_matrix.py           # system × attack heatmap
@@ -114,19 +114,21 @@ After running these, everything under `paper/deliverable/` will exactly match wh
 
 ⚠ Only do this if you are validating the paper's numbers on your own API accounts, or you have deleted `results/`.
 
-The full artifact was produced in **eight sequential batches**. Each batch is idempotent (resumes from cached traces on disk) and each script accepts `--dry-run` to preview cost.
+The full artifact was produced in **ten sequential batches**. Each batch is idempotent (resumes from cached traces on disk) and each script accepts `--dry-run` to preview cost.
 
 | # | Script | Runs | Est. cost | Est. wall-clock | Purpose |
 |---:|---|---:|---:|---:|---|
 | 1 | `run_final.py` (initial + Tier 1) | 238 | ~$50 | ~35 min | Main safety table + ablation + β sweep |
 | 2 | `run_baselines.py --attacks prompt_injection_strong adaptive_paraphrase` | 36 | ~$9 | ~8 min | 3 baselines on input-facing attacks |
-| 3 | `run_baselines.py --attacks tool_poisoning` | 30 | ~$7.50 | ~7 min | 3 baselines on `tool_poisoning` (smoking gun Ⅰ evidence) |
-| 4 | `run_missing_attacks.py` | 36 | ~$9 | ~30 min | memory/reasoning_state/consensus (smoking gun Ⅱ) |
-| 5 | `run_judges.py` | ~30 judge calls | ~$4 | ~7 min | Hallucination + consistency + κ over 30 borderline traces |
-| 6 | `run_multiturn_attacks.py` | 36 | ~$9 | ~10 min | 3 multi-turn attacks (smoking gun Ⅲ) |
-| 7 | Development smoke traces | ~8 | ~$2 | negligible | Ignored in results (kept for provenance) |
-| 8 | `run_gsm8k.py` (already ships in the 238 above) | 30 | included | included | Reasoning fidelity |
-| **Totals** | | **~536** | **~$90** | **~1.5–2 h** | |
+| 3 | `run_baselines.py --attacks tool_poisoning` | 30 | ~$7.50 | ~7 min | 3 baselines on `tool_poisoning` (mechanism-substitution Ⅰ evidence) |
+| 4 | `run_missing_attacks.py` | 36 | ~$9 | ~30 min | memory/reasoning_state/consensus (mechanism-substitution Ⅱ) |
+| 5 | `run_judges.py` v1 (Sonnet-only) | ~30 judge calls | ~$4 | ~7 min | Deprecated by v2 |
+| 6 | `run_multiturn_attacks.py` | 36 | ~$9 | ~10 min | 3 stateful-memory attacks (mechanism-substitution Ⅲ) |
+| 7 | `run_judges.py` v2 (F2 fix: gpt-5 as primary Judge C) | ~30 judge calls | ~$4 | ~10 min | Cross-family Cohen's κ over 30 borderline traces |
+| 8 | `run_sentinel_check.py` (F3 fix: per-attack random tokens) | 36 | ~$9 | ~10 min | Sentinel-randomization robustness check — see §6.15 |
+| 9 | Development smoke traces | ~8 | ~$2 | negligible | Ignored in results (kept for provenance) |
+| 10 | `run_gsm8k.py` (already ships in the 238 above) | 30 | included | included | Reasoning fidelity |
+| **Totals** | | **~608** | **~$105** | **~2–2.5 h** | |
 
 Run in order:
 
@@ -144,12 +146,14 @@ python scripts/run_missing_attacks.py                       # ~30 min, ~$9
 python scripts/run_multiturn_attacks.py --dry-run
 python scripts/run_multiturn_attacks.py                     # ~10 min, ~$9
 
-python scripts/run_judges.py                                # ~7 min, ~$4
+python scripts/run_judges.py                                # ~10 min, ~$4  (v2 cross-family judge)
+
+python scripts/run_sentinel_check.py                        # ~10 min, ~$9  (F3 sentinel randomization)
 ```
 
 Every script auto-invokes `run_final.py --report-only` at the end, so `paper/deliverable/FINAL.md` is refreshed after each batch.
 
-After the full sequence, run §2 (zero-cost) once more to generate the novelty-tier analyses (certified radius, argmax, Pareto, coverage matrix).
+After the full sequence, run §2 (zero-cost) once more to generate the novelty-tier analyses (first-order local margin, argmax, Pareto, coverage matrix).
 
 ---
 
@@ -209,7 +213,7 @@ Overrides at command time: any script accepts `--config path/to/other.yaml`.
 infoshield/
 ├── config.yaml                      # ← single source of truth
 ├── .env                             # ← API keys, git-ignored
-├── INFOSHIELD.md                    # ← 1,185-line research write-up
+├── INFOSHIELD.md                    # ← 1,252-line research write-up
 ├── README.md                        # ← project entry point
 ├── REPRODUCIBILITY.md               # ← this file
 │
@@ -227,14 +231,15 @@ infoshield/
 │   ├── run_final.py                 # Main orchestrator + FINAL.md writer
 │   ├── run_baselines.py             # Adds 3 competitive baselines
 │   ├── run_missing_attacks.py       # memory/reasoning_state/consensus
-│   ├── run_multiturn_attacks.py     # 3 multi-turn stateful attacks
+│   ├── run_multiturn_attacks.py     # 3 stateful-memory attacks (single-turn simulation)
 │   ├── run_judges.py                # LLM-judge Cohen's κ
 │   ├── analyze_gates.py             # ROC/AUC + threshold sensitivity (free)
-│   ├── analyze_certified_radius.py  # Certified perturbation radius (free)
+│   ├── analyze_certified_radius.py  # First-order local margin in embedding space (free)
 │   ├── analyze_argmax_phrases.py    # Which phrase caught what (free)
 │   ├── analyze_gate_pareto.py       # Cost-conditional Pareto frontier (free)
 │   ├── aggregate_results.py         # results/ → paper/numbers.json + CSVs
 │   └── consolidate.py               # Aggregator + all figure scripts
+│   └── run_sentinel_check.py        # F3 sentinel-randomization runner (~$9)
 │
 ├── figures/                         # matplotlib scripts (fig1..fig8)
 │
@@ -263,16 +268,17 @@ Each numbered claim in [INFOSHIELD.md §6.2](INFOSHIELD.md) is traceable to spec
 |---|---|
 | Main ASR table (§6.1) | `python scripts/run_final.py --report-only` → `paper/deliverable/FINAL.md` section 3 |
 | Attribution table (§6.2) | Same command → `paper/deliverable/FINAL.md` section 4 |
-| **Smoking gun Ⅰ** — tool_poisoning (§6.2 claim #2) | `grep tool_poisoning paper/deliverable/FINAL.md` |
-| **Smoking gun Ⅱ** — memory_poisoning (§6.2 claim #7) | `grep memory_poisoning paper/deliverable/FINAL.md` |
-| **Smoking gun Ⅲ** — mem_role_confusion (§6.14) | `grep mem_role_confusion paper/deliverable/FINAL.md` |
+| **Mechanism substitution Ⅰ** — tool_poisoning (§6.2 claim #2) | `grep tool_poisoning paper/deliverable/FINAL.md` |
+| **Mechanism substitution Ⅱ** — memory_poisoning (§6.2 claim #7) | `grep memory_poisoning paper/deliverable/FINAL.md` |
+| **Mechanism substitution Ⅲ** — mem_role_confusion (§6.14) | `grep mem_role_confusion paper/deliverable/FINAL.md` |
 | GSM8K CTCA delta (§6.3) | `python scripts/aggregate_results.py` → `paper/numbers.json["gsm8k"]` |
 | Per-gate AUC (§6.7) | `python scripts/analyze_gates.py` → `paper/numbers.json["roc_auc"]` |
-| LLM-judge κ (§6.8) | `cat paper/deliverable/judges_report.json` (regenerate: `python scripts/run_judges.py`, ~$4) |
-| Certified radius (§6.10) | `python scripts/analyze_certified_radius.py` → `certified_radius_per_gate.csv` |
+| LLM-judge cross-family κ (§6.8) | `cat paper/deliverable/judges_report.json` (regenerate: `python scripts/run_judges.py`, ~$4) |
+| First-order margin (§6.10) | `python scripts/analyze_certified_radius.py` → `certified_radius_per_gate.csv` |
 | Argmax phrases (§6.11) | `python scripts/analyze_argmax_phrases.py` → `argmax_phrase_heatmap.csv` |
 | Gate Pareto (§6.12) | `python scripts/analyze_gate_pareto.py` → `gate_pareto.csv` |
 | Coverage matrix (§6.13) | `python figures/fig8_coverage_matrix.py` → `fig8_coverage_matrix.pdf` |
+| Sentinel-randomization check (§6.15) | `python scripts/run_sentinel_check.py` → `sentinel_check_report.json` (~$9) |
 
 ---
 
