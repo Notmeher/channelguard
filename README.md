@@ -67,7 +67,7 @@ python scripts/analyze_gates.py         # ROC/AUC + threshold sweep (free, disk-
 ```
 
 Wall-clock: **~20 min** for `run_final.py` at `pipeline.parallel_samples=8`.
-Cumulative spend to produce the current 499-trace artifact: **~\$79**.
+Cumulative spend to produce the current 535-trace artifact: **~\$88**.
 
 Output goes to [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md).
 
@@ -154,7 +154,7 @@ See [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) for the full
 auto-generated report, and [INFOSHIELD.md](INFOSHIELD.md) for the full
 research write-up (motivation, design, related work, discussion, ethics).
 
-**One-line summary** (over **499 traces**, ~\$79 total spend, 6 attack
+**One-line summary** (over **535 traces**, ~\$88 total spend, 9 attack
 families, 5 systems): INFOSHIELD reduces `prompt_injection_strong` ASR by
 33 % (0.300 → 0.200) and provides **two uncontested deterministic wins** —
 it blocks **30/30 `tool_poisoning`** attempts at IB-3 and **6/6

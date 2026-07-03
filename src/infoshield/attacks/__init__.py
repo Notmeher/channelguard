@@ -3,6 +3,7 @@
 from infoshield.attacks import (  # noqa: F401  (import for side effects)
     adaptive_paraphrase,
     consensus_collapse,
+    memory_multiturn,
     memory_poisoning,
     prompt_injection,
     reasoning_state,

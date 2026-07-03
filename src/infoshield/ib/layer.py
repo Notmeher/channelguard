@@ -82,6 +82,25 @@ class IBLayer:
         sims = cosine_similarity(v, self.bank_emb)  # shape (n_sent, |bank|)
         return float(sims.max())
 
+    def score_with_argmax(self, text: str) -> tuple[float, int, int]:
+        """Same as score() but also returns (best_sentence_idx, best_phrase_idx).
+
+        Used by post-hoc analysis (scripts/analyze_argmax_phrases.py) to
+        attribute each gate decision to the specific bank phrase that drove
+        the risk score. Kept as a separate method so hot-path callers of
+        score() are unaffected.
+        """
+        text = (text or "").strip()
+        if not text:
+            return 0.0, -1, -1
+        sentences = self._split_sentences(text) or [text]
+        v = self.encoder.encode(sentences, convert_to_numpy=True, normalize_embeddings=True)
+        sims = cosine_similarity(v, self.bank_emb)
+        flat = int(np.argmax(sims))
+        best_sent = flat // sims.shape[1]
+        best_phrase = flat % sims.shape[1]
+        return float(sims.max()), int(best_sent), int(best_phrase)
+
     def compress(self, text: str) -> str:
         # Simple extractive: keep first N sentences. Adversarial suffixes are
         # typically appended, so truncation strips them.

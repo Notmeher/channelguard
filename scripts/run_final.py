@@ -378,6 +378,9 @@ def _write_final_md(cfg, step_results: list[dict]) -> Path:
             "memory_poisoning",
             "reasoning_state_injection",
             "consensus_collapse",
+            "mem_slow_drift",
+            "mem_consent_escalation",
+            "mem_role_confusion",
         ],
     )
     if attribution:
