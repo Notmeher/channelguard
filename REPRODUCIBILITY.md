@@ -2,8 +2,8 @@
 
 **Every number, table, and figure in [INFOSHIELD.md](INFOSHIELD.md) and [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md) is regenerable from this repository.** This document tells you exactly how — from a fresh clone to the final artifact — with cost and time estimates for each step.
 
-- **Total spend to reproduce the current artifact from scratch**: ~$101 in Azure OpenAI + Anthropic API calls
-- **Total spend to regenerate all reports + figures from the 571 traces already on disk**: **$0** (local-only)
+- **Total spend to reproduce the current artifact from scratch**: ~$105 in Azure OpenAI + Anthropic API calls
+- **Total spend to regenerate all reports + figures from the 605 traces already on disk**: **$0** (local-only)
 - **Wall-clock end-to-end from a fresh clone (all API batches)**: ~2 hours at 8-way parallelism
 - **Wall-clock to regenerate every deliverable from cached traces**: ~2 minutes
 
@@ -86,7 +86,7 @@ If either fails, do not proceed with the paid experiments — investigate `AZURE
 
 ## 2. The zero-cost path: regenerate everything from cached traces
 
-If you have the 571 traces already on disk under `results/` (which is the state of the maintainer's tree), every table and figure in the paper is regenerable **without any API calls**.
+If you have the 605 traces already on disk under `results/` (which is the state of the maintainer's tree), every table and figure in the paper is regenerable **without any API calls**.
 
 ```bash
 # 1. Refresh paper/deliverable/FINAL.md (main safety table + attribution)
@@ -110,7 +110,7 @@ After running these, everything under `paper/deliverable/` will exactly match wh
 
 ---
 
-## 3. The full-cost path: re-produce the 571 traces from scratch
+## 3. The full-cost path: re-produce the 605 traces from scratch
 
 ⚠ Only do this if you are validating the paper's numbers on your own API accounts, or you have deleted `results/`.
 
@@ -243,7 +243,7 @@ infoshield/
 │
 ├── figures/                         # matplotlib scripts (fig1..fig8)
 │
-├── results/                         # git-ignored — 571 trace JSONs
+├── results/                         # git-ignored — 605 trace JSONs
 │   └── main/<system>/<attack>/seed_0/<sample_id>.json
 │
 ├── paper/
