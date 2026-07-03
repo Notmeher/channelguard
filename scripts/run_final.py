@@ -538,6 +538,21 @@ def _build_steps(cfg) -> list[dict]:
             "n_samples": 6,
             "seeds": [0],
         },
+        {
+            "name": "baselines_main",
+            "description": (
+                "Add 2 prior-work baselines (ibprotector, llm_guard) to the main "
+                "safety table for competitive comparison on the two key attacks. "
+                "SmoothLLM skipped: K=10 perturbations multiply cost ~10×. "
+                "perplexity_filter skipped: requires local GPT-2."
+            ),
+            "experiment": "main",
+            "dataset": "hotpot_qa",
+            "systems": ["ibprotector", "llm_guard"],
+            "attacks": ["prompt_injection_strong", "adaptive_paraphrase"],
+            "n_samples": 8,
+            "seeds": [0],
+        },
     ]
 
 
