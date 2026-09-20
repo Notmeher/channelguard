@@ -639,14 +639,15 @@ if status == "BLOCKED":
 **The gate mechanism in detail** (identical at all six placements):
 
 $$
-\text{risk}(t) = \max_{\substack{s \in \text{sentences}(t) \\ b \in B}} \cos\big(e(s),\, e(b)\big)
+\mathrm{risk}(t) \;=\; \max_{s \in \mathrm{sentences}(t)} \; \max_{b \in B} \; \cos\left(e(s),\, e(b)\right)
 $$
 
 $$
-\text{gate}(t) = \begin{cases}
-\textsc{Block} & \text{risk}(t) \ge \theta \quad (\theta = 0.60) \\
-\textsc{Compress} & \alpha\theta \le \text{risk}(t) < \theta \quad (\alpha\theta = 0.42) \\
-\textsc{Pass} & \text{risk}(t) < \alpha\theta
+\mathrm{gate}(t) \;=\;
+\begin{cases}
+\mathrm{BLOCK} & \mathrm{risk}(t) \ge \theta & (\theta = 0.60) \\
+\mathrm{COMPRESS} & \alpha\theta \le \mathrm{risk}(t) < \theta & (\alpha\theta = 0.42) \\
+\mathrm{PASS} & \mathrm{risk}(t) < \alpha\theta &
 \end{cases}
 $$
 
