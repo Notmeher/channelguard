@@ -37,6 +37,7 @@ class PipelineState(TypedDict, total=False):
     # --- Attack config (set by runner before execution) ------------------
     attack: str               # attack name applied to this run
     tool_poisoned: bool       # true if tool should return poisoned outputs
+    tool_marker: str          # payload token inside poisoned tool output ("" = ATTACK_SUCCESS)
     poison_memory: bool       # true if memory was pre-populated with adversarial entries
     injected_subtask_suffix: str   # non-empty triggers reasoning-state injection
     consensus_prefix: str     # non-empty forces consensus collapse attempt
@@ -56,6 +57,7 @@ def new_state(
     trace: Trace,
     attack: str = "none",
     tool_poisoned: bool = False,
+    tool_marker: str = "",
     poison_memory: bool = False,
     injected_subtask_suffix: str = "",
     consensus_prefix: str = "",
@@ -68,6 +70,7 @@ def new_state(
         "input_status": "PASSED",
         "attack": attack,
         "tool_poisoned": tool_poisoned,
+        "tool_marker": tool_marker,
         "poison_memory": poison_memory,
         "injected_subtask_suffix": injected_subtask_suffix,
         "consensus_prefix": consensus_prefix,

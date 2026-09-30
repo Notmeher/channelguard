@@ -64,6 +64,7 @@ def build_pipeline(
         seed: int,
         dataset: str,
         tool_poisoned: bool = False,
+        tool_marker: str = "",
         poison_memory: bool = False,
         injected_subtask_suffix: str = "",
         consensus_prefix: str = "",
@@ -116,6 +117,7 @@ def build_pipeline(
             trace=trace,
             attack=attack,
             tool_poisoned=tool_poisoned,
+            tool_marker=tool_marker,
             poison_memory=poison_memory,
             injected_subtask_suffix=injected_subtask_suffix,
             consensus_prefix=consensus_prefix,
@@ -127,7 +129,8 @@ def build_pipeline(
             from infoshield.trace import GateDecision  # local import avoids Phase 1 cycles
             import time
             t0 = time.perf_counter()
-            risk, status, output = ib0(raw_input)
+            result = ib0(raw_input)
+            risk, status, output = result
             latency_ms = (time.perf_counter() - t0) * 1000.0
             trace.add_gate(
                 GateDecision(
@@ -137,6 +140,7 @@ def build_pipeline(
                     risk=risk,
                     status=status,
                     latency_ms=latency_ms,
+                    argmax_phrase=getattr(result, "phrase_idx", None),
                 )
             )
             initial["input_status"] = status

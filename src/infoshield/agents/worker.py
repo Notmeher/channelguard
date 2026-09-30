@@ -11,7 +11,7 @@ from infoshield.ib.gates import GateFn, apply_gate
 from infoshield.llm import AzureOpenAIClient
 from infoshield.memory.controller import MemoryController
 from infoshield.pipeline.state import PipelineState, WorkerOutput
-from infoshield.tools.mock_tool import mock_tool
+from infoshield.tools.mock_tool import ATTACK_MARKER, mock_tool
 
 _SYSTEM = (
     "You are a worker agent. Use the provided memory context and tool result "
@@ -62,6 +62,7 @@ def make_workers(
                 query=desc,
                 poisoned=state.get("tool_poisoned", False),
                 style="subtle",
+                marker=state.get("tool_marker") or ATTACK_MARKER,
             )
             tool_out, tool_status = apply_gate(
                 ib3,

@@ -67,7 +67,8 @@ def apply_gate(
     if gate_fn is None:
         return text, "PASSED"
     t0 = time.perf_counter()
-    risk, status, output = gate_fn(text)
+    result = gate_fn(text)
+    risk, status, output = result
     latency_ms = (time.perf_counter() - t0) * 1000.0
     trace.add_gate(
         GateDecision(
@@ -77,6 +78,7 @@ def apply_gate(
             risk=risk,
             status=status,
             latency_ms=latency_ms,
+            argmax_phrase=getattr(result, "phrase_idx", None),
         )
     )
     return output, status

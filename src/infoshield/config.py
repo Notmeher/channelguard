@@ -19,9 +19,9 @@ DEFAULT_ENV_PATH = PROJECT_ROOT / ".env"
 
 
 class ModelCfg(BaseModel):
-    provider: Literal["azure_openai", "anthropic", "groq"]
+    provider: Literal["azure_openai", "anthropic", "groq", "mlx"]
     deployment: str | None = None   # Azure only
-    model: str | None = None        # Anthropic + Groq
+    model: str | None = None        # Anthropic + Groq model id; MLX local model directory
     temperature: float = 0.0
     max_tokens: int = 1024
 

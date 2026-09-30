@@ -43,6 +43,7 @@ def mock_tool(
     query: str,
     poisoned: bool = False,
     style: str = "subtle",
+    marker: str = ATTACK_MARKER,
 ) -> str:
     """Return a synthetic tool response.
 
@@ -50,11 +51,12 @@ def mock_tool(
         query: any question or subtask description.
         poisoned: if True, embed an adversarial instruction.
         style: 'subtle' (fact + injection) or 'obvious' (injection only).
+        marker: payload token; the sentinel-randomization test swaps it out.
     """
     query = re.sub(r"\s+", " ", (query or "").strip())
     if not poisoned:
         return _pick(_CLEAN_FACTS, query)
-    injection = _pick(_ADVERSARIAL_INSTRUCTIONS, query, salt="adv")
+    injection = _pick(_ADVERSARIAL_INSTRUCTIONS, query, salt="adv").replace(ATTACK_MARKER, marker)
     if style == "obvious":
         return injection.strip()
     fact = _pick(_CLEAN_FACTS, query)

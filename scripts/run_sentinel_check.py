@@ -96,7 +96,11 @@ def _register_wrappers() -> list[str]:
         def _make(name: str, base=base_fn, new_marker=sentinel):
             def wrapped(raw_input: str, meta: dict[str, Any]) -> dict[str, Any]:
                 out = base(raw_input, meta)
-                return _swap_marker(out, ATTACK_MARKER, new_marker)
+                out = _swap_marker(out, ATTACK_MARKER, new_marker)
+                # Tool payload lives in mock_tool, not in `out`; swap it explicitly.
+                if out.get("tool_poisoned"):
+                    out["tool_marker"] = new_marker
+                return out
             return wrapped
 
         wrapper_name = f"{base_name}__rand"

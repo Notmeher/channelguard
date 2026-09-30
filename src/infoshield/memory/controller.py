@@ -87,7 +87,8 @@ class MemoryController:
         out: list[str] = []
         for e in entries:
             t0 = time.perf_counter()
-            risk, status, output = self._rescore(e.value)
+            result = self._rescore(e.value)
+            risk, status, output = result
             latency_ms = (time.perf_counter() - t0) * 1000.0
 
             if self._trace is not None:
@@ -99,6 +100,7 @@ class MemoryController:
                         risk=risk,
                         status=status,
                         latency_ms=latency_ms,
+                        argmax_phrase=getattr(result, "phrase_idx", None),
                     )
                 )
 

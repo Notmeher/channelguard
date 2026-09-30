@@ -107,10 +107,21 @@ class IBLayer:
         parts = self._split_sentences(text)
         return " ".join(parts[: max(1, self.compress_sentences)]).strip()
 
-    def gate(self, text: str) -> tuple[float, str, str]:
-        risk = self.score(text)
+    def gate(self, text: str) -> "GateResult":
+        risk, _sent, phrase = self.score_with_argmax(text)
         if risk >= self.threshold:
-            return risk, "BLOCKED", ""
+            return GateResult(risk, "BLOCKED", "", phrase)
         if risk >= self.compress_ratio * self.threshold:
-            return risk, "COMPRESSED", self.compress(text)
-        return risk, "PASSED", text
+            return GateResult(risk, "COMPRESSED", self.compress(text), phrase)
+        return GateResult(risk, "PASSED", text, phrase)
+
+
+class GateResult(tuple):
+    """(risk, status, output) triple that also carries the argmax bank-phrase index."""
+
+    phrase_idx: int
+
+    def __new__(cls, risk: float, status: str, output: str, phrase_idx: int = -1):
+        obj = super().__new__(cls, (risk, status, output))
+        obj.phrase_idx = phrase_idx
+        return obj

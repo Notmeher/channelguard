@@ -28,6 +28,7 @@ class GateDecision(BaseModel):
     risk: float                     # 0..1, cosine sim to phrase bank
     status: GateStatus
     latency_ms: float
+    argmax_phrase: int | None = None  # bank index that produced `risk`; None for non-bank gates
     ts: float = Field(default_factory=time.time)
 
 

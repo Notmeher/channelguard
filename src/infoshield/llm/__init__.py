@@ -7,12 +7,14 @@ from infoshield.llm.anthropic import AnthropicClient
 from infoshield.llm.azure_embedding import AzureEmbeddingClient
 from infoshield.llm.azure_openai import AzureOpenAIClient
 from infoshield.llm.groq_client import GroqClient
+from infoshield.llm.mlx_client import MLXClient
 
 __all__ = [
     "AzureOpenAIClient",
     "AnthropicClient",
     "AzureEmbeddingClient",
     "GroqClient",
+    "MLXClient",
     "ChatClient",
     "build_chat_client",
 ]
@@ -57,6 +59,14 @@ def build_chat_client(model_cfg) -> ChatClient:
         if not model_cfg.model:
             raise ValueError("groq provider requires `model` (e.g. llama-3.3-70b-versatile)")
         return GroqClient(
+            model=model_cfg.model,
+            temperature=model_cfg.temperature,
+            max_tokens=model_cfg.max_tokens,
+        )
+    if provider == "mlx":
+        if not model_cfg.model:
+            raise ValueError("mlx provider requires `model` (path to a local MLX model directory)")
+        return MLXClient(
             model=model_cfg.model,
             temperature=model_cfg.temperature,
             max_tokens=model_cfg.max_tokens,
