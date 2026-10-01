@@ -1,0 +1,68 @@
+seed: 0
+output_root: results_llama
+dataset_cache: datasets
+
+models:
+  agent:
+    provider: mlx
+    model: ../Llama-3.1-8B-Instruct-mlx-4bit
+    temperature: 0.0
+    max_tokens: 1024
+
+  verifier:
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    temperature: 1.0
+    max_tokens: 32
+    samples: 5
+
+  judge_hallucination:
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    temperature: 0.0
+    max_tokens: 512
+
+  judge_consistency:
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    temperature: 0.0
+    max_tokens: 256
+
+embedding:
+  provider: local
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+
+ib:
+  beta: 1.0
+  threshold: 0.60
+  compress_ratio: 0.70
+  compress_sentences: 2
+  phrase_bank_size: 20
+  active_layers: [0, 1, 2, 3, 4, 5]
+
+verifier:
+  unsafe_threshold: 0.5
+  uncertainty_threshold: 0.3
+  consensus_collapse_std: 0.15
+
+experiments:
+  main:
+    dataset: hotpot_qa
+    n_samples: 30
+    seeds: [0]
+  gsm8k:
+    dataset: gsm8k
+    n_samples: 30
+    seeds: [0]
+
+pipeline:
+  n_workers: 3
+  request_timeout_s: 60
+  max_retries: 4
+  parallel_samples: 8
+
+logging:
+  trace_write_every: 1
+  console_level: INFO
