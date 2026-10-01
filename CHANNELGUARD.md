@@ -1775,7 +1775,7 @@ klass = _classify_trace(trace)              # → "ib_blocked" | "azure_filter" 
 | [src/infoshield/memory/controller.py](src/infoshield/memory/controller.py) | Read-time re-scoring (IB-3-mem) |
 | [src/infoshield/tools/mock_tool.py](src/infoshield/tools/mock_tool.py) | Deterministic tool with clean/poisoned pools |
 | [src/infoshield/attacks/](src/infoshield/attacks/) | 9 attack families + sentinel registry |
-| [src/infoshield/baselines/](src/infoshield/baselines/) | undefended, ibprotector, llm_guard, perplexity_filter, smoothllm, infoshield |
+| [src/infoshield/baselines/](src/infoshield/baselines/) | undefended, ibprotector, llm_guard, perplexity_filter, smoothllm, channelguard |
 | [src/infoshield/metrics/](src/infoshield/metrics/) | ASR, CTCA, UPS, ILR, TMR, CCR, bootstrap, McNemar, κ |
 | [src/infoshield/runner.py](src/infoshield/runner.py) | Matrix runner with resume-from-disk + thread pool |
 | [scripts/run_final.py](scripts/run_final.py) | Main orchestrator + `_classify_trace()` attribution |

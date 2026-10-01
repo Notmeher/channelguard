@@ -2,7 +2,8 @@
 
 **A plain-language companion to [paper/qwen/README.md](paper/qwen/README.md).** That file has every raw table;
 this one explains what the numbers mean, compared directly against the manuscript's Azure GPT-5 + Claude
-results (arXiv:2607.19430v2).
+results (arXiv:2607.19430v2). The Llama-3.1-8B replication is summarized in the same format in
+[llama_channelguard.md](llama_channelguard.md); §8 below compares the two local models directly.
 
 ---
 
@@ -151,16 +152,57 @@ no safety-tuned provider wrapper at all).
 
 ## 7. Cost and efficiency
 
-| | Qwen (this run) | GPT-5 (paper) |
-|---|---:|---:|
-| Total measured spend | **$9.96** | $47.36 |
-| Mean serial latency per run | 34.2 s | 70.3 s |
-| Verifier share of tokens | 61.9% | 31.0% |
-| Agent-side cost | $0 (local) | priced per token |
+| | GPT-5 (paper) | **Qwen3-4B** | Llama-3.1-8B |
+|---|---:|---:|---:|
+| Total cost | $47.36 | **$9.96** | $11.37 |
+| Mean time per run | 70.3 s | **34.2 s** | 44.1 s |
+| Generation speed | API | **23.3 tok/s** | 14.5 tok/s |
+| Verifier share of tokens | 31% | **62%** | 61% |
+| Agent model / precision | GPT-5, cloud API | **4B, MLX 8-bit, local** | 8B, MLX 4-bit, local |
+| Agent-side cost | priced per token | **$0 (local)** | $0 (local) |
+| Pipeline traces | 2,100 | **1,800** | 1,800 |
+| Claude verifier calls | — | **19,895** | 20,620 |
+| Claude tokens (in / out) | — | **2.21M / 0.15M** | 2.76M / 0.15M |
+| Local-model tokens (in / out) | — | **1.15M / 0.30M** | 1.49M / 0.36M |
+| Mean tokens per run | 4,292 | **2,768** | 3,418 |
+| Pipeline API spend / judge audit | — | **$8.87 / $1.08** | $10.53 / $0.84 |
+| Early-exit speedup, Prompt Injection | 3.30× | **4.31×** | 3.05× |
+| Pooled adversarial speedup | 1.19× | **1.12×** | 1.12× |
 
-Qwen is both faster and far cheaper to run, since the agent itself is free and local. The verifier (Claude
-Sonnet, unchanged) now dominates both time and cost even more than it did in the manuscript, because Qwen's own
-generation is comparatively quick.
+Qwen is the fastest and cheapest of the three: the agent itself is free and local, and at 4B parameters it
+generates ~1.6× faster than Llama-8B. With the agent costing nothing, the Claude verifier dominates both time
+and cost (~62% of tokens, vs. 31% in the manuscript). Reducing it from 5 to 3 Monte-Carlo samples is the single
+biggest efficiency lever on either local model. The manuscript's $47.36 also paid for GPT-5 itself, so its
+cost is not directly comparable.
+
+---
+
+## 8. Qwen3-4B vs. Llama-3.1-8B — how the two local models compare
+
+| | Qwen3-4B | Llama-3.1-8B |
+|---|---:|---:|
+| Undefended Prompt Injection ASR | 0.800 | 0.767 |
+| ChannelGuard Prompt Injection ASR | **0.033** | 0.100 |
+| McNemar on Prompt Injection | 23 vs 0, p < 0.001 | 20 vs 0, p < 0.001 |
+| Undefended leaks on tool/memory attacks (5 families, n=150) | **8** | **0** |
+| ChannelGuard IB blocks, Tool + Memory + Role-Confusion (n=90) | 90/90 | 90/90 |
+| Consent-Escalation IB blocks | 11/30 | 0/30 |
+| Consensus Collapse (CG ASR) | **0.000** | 0.067 ❌ |
+| Adaptive Paraphrase (CG ASR) | 0.600 ❌ | 0.567 ❌ |
+| Sentinel randomization preserved | 100% | 97.8% |
+| GSM8K CTCA (both systems) | 0.767 | 0.767 |
+| IB-0 COMPRESS stop-rate | 0.511 | 0.407 |
+| Judge κ, Sonnet vs GPT-5 | 0.851 | 0.895 |
+
+- **Direct injection:** both local models are equally exposed without a defense (~78–80%), more than double
+  GPT-5's 33%. ChannelGuard brings both down, slightly further on Qwen.
+- **Indirect injection:** the models differ sharply. Qwen leaked 8 times across the tool and memory attacks;
+  Llama never did. ChannelGuard blocked 100% of these at a gate on both, so the defended outcome is identical
+  even though the undefended risk is not — provider-invariance from the application's point of view.
+- **Failures:** Adaptive Paraphrase beats ChannelGuard on both. Consensus Collapse is fixed on Qwen but not on
+  Llama.
+- **Shared divergences from the paper:** both models had Slow-Drift Memory caught 30/30 at IB-3-mem, neither
+  showed the "bigger bank is worse" effect, and neither reproduced the vague-rubric κ collapse.
 
 ---
 
@@ -176,14 +218,17 @@ generation is comparatively quick.
 4. **The paper's central claim about mechanism substitution is, if anything, more dramatically true on a
    filterless local model**, where ChannelGuard goes from "sharing credit with a provider filter" to being
    "the only deterministic protection in the entire system."
-5. **Provider-invariance (Corollary B.5) now holds across four structurally different backends**, including one
-   that is smaller, local, and has no safety-tuned API wrapper at all.
+5. **Provider-invariance (Corollary B.5) now holds across five structurally different backends** — the
+   manuscript's three plus Qwen and Llama — including two that are small, local, and have no safety-tuned API
+   wrapper at all.
 
 **One open thread for follow-up:** the Slow-Drift Memory result diverges from the manuscript (fully caught here
-vs. fully evaded there) and deserves a dedicated multi-model sweep before concluding whether narrative-style
+vs. fully evaded there). The Llama replication reproduced Qwen's result (30/30 caught), so two local models now
+disagree with the paper. A dedicated multi-model sweep is still needed before concluding whether narrative-style
 memory attacks are a fundamental gate weakness or a model-dependent one.
 
 ---
 
 *Full tables: [paper/qwen/README.md](paper/qwen/README.md). Machine-readable numbers:
-[paper/qwen/numbers.json](paper/qwen/numbers.json). Raw traces: `results_qwen/`.*
+[paper/qwen/numbers.json](paper/qwen/numbers.json). Raw traces: `results_qwen/`.
+Llama companion: [llama_channelguard.md](llama_channelguard.md).*

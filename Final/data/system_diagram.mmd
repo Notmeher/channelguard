@@ -1,0 +1,115 @@
+%% =========================================================
+%% CHANNELGUARD / Channelguard — main system diagram (conceptual)
+%% Components only; no variable names, file paths, or code identifiers.
+%% =========================================================
+flowchart TB
+
+  %% =========== 1. THREAT SURFACE ===========
+  subgraph THREATS["Threat surface — what an adversary can do"]
+    direction LR
+    A1["Prompt injection<br/>in user query"]
+    A2["Tool-output<br/>poisoning"]
+    A3["Shared-memory<br/>poisoning"]
+    A4["Reasoning-state<br/>injection"]
+    A5["Consensus<br/>collapse"]
+    A6["Adaptive paraphrase<br/>(white-box)"]
+  end
+
+  %% =========== 2. PIPELINE WITH GATES ===========
+  USER(["User query"])
+
+  subgraph PIPE["Multi-agent pipeline with six information-bottleneck gates"]
+    direction TB
+
+    G0{{"Input gate"}}
+    P["Planner agent"]
+    G1{{"Subtask gate"}}
+
+    subgraph WORK["Worker agents (parallel)"]
+      direction TB
+      TOOL["External tool /<br/>retrieval"]
+      G3{{"Tool-output gate"}}
+      MEM["Shared memory"]
+      GM{{"Memory-read gate"}}
+      W["Worker LLM"]
+      G2{{"Worker-output gate"}}
+      TOOL --> G3 --> W
+      MEM --> GM --> W
+      W --> G2
+      G2 -->|passes| MEM
+    end
+
+    G4{{"Pre-verifier gate"}}
+    V["Uncertainty-aware verifier<br/>Monte Carlo × 5"]
+    TF["Triple filter<br/>gate + safety + certainty"]
+    G5{{"Synthesis gate"}}
+    S["Synthesizer agent"]
+
+    G0 --> P --> G1 --> WORK --> G4 --> V --> TF --> G5 --> S
+  end
+
+  USER --> G0
+
+  %% Attack → channel wiring
+  A1 -.-> G0
+  A2 -.-> TOOL
+  A3 -.-> MEM
+  A4 -.-> G1
+  A5 -.-> WORK
+  A6 -.-> G0
+
+  %% =========== 3. HOW A GATE DECIDES ===========
+  subgraph GATE["How every gate decides (shared mechanism)"]
+    direction LR
+    IN["Text on a channel"]
+    SPLIT["Split into sentences"]
+    EMB["Sentence embedding"]
+    BANK["Adversarial<br/>phrase bank"]
+    SIM["Max cosine similarity"]
+    DEC{"Threshold decision"}
+    PASS["Pass<br/>forward unchanged"]
+    COMP["Compress<br/>keep only benign prefix"]
+    BLK["Block<br/>drop content"]
+    IN --> SPLIT --> EMB --> SIM
+    BANK --> SIM
+    SIM --> DEC
+    DEC -->|low risk| PASS
+    DEC -->|medium risk| COMP
+    DEC -->|high risk| BLK
+  end
+
+  G0 -.-> GATE
+  G1 -.-> GATE
+  G2 -.-> GATE
+  G3 -.-> GATE
+  GM -.-> GATE
+  G4 -.-> GATE
+  G5 -.-> GATE
+
+  %% =========== 4. OUTCOMES ===========
+  S --> OUT1["Safe answer"]
+  G0 -.-> OUT2["Hard refusal<br/>no downstream cost"]
+  TF -.-> OUT2
+  G5 -.-> OUT2
+
+  %% =========== 5. TRACE, ATTRIBUTION & METRICS ===========
+  subgraph EVAL["Trace → attribution → metrics"]
+    direction TB
+    TRACE["Per-sample trace<br/>every gate decision + LLM call"]
+    ATTR["Attribution — which layer<br/>first stopped the attack<br/>gate before provider before verifier before refusal"]
+    METR["Safety metrics<br/>ASR · UPS · ILR · TMR · CCR<br/>Reasoning + Efficiency"]
+    TRACE --> ATTR --> METR
+  end
+
+  OUT1 --> TRACE
+  OUT2 --> TRACE
+
+  %% =========== Styling ===========
+  classDef gate fill:#c6f6d5,stroke:#276749,color:#1a202c
+  classDef agent fill:#bee3f8,stroke:#2b6cb0,color:#1a202c
+  classDef attack fill:#feb2b2,stroke:#c53030,color:#1a202c
+  classDef outcome fill:#faf089,stroke:#975a16,color:#1a202c
+  class G0,G1,G2,G3,G4,G5,GM,DEC gate
+  class P,W,V,S agent
+  class A1,A2,A3,A4,A5,A6 attack
+  class OUT1,OUT2 outcome
