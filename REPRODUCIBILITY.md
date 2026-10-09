@@ -33,8 +33,8 @@ Every step below has been executed exactly as documented on the maintainer's mac
 ## 1. One-time setup
 
 ```bash
-git clone https://github.com/Notmeher/infoshield.git
-cd infoshield
+git clone <ANONYMOUS_REPO_URL>
+cd <repo-dir>
 
 # Create venv and install (uv is fastest; pip works identically)
 uv venv --python 3.12
@@ -338,7 +338,7 @@ Everything **else** — attribution logic, IB gate decisions, certified radii, a
 
 ## 11. Contact / provenance
 
-- **Repository**: https://github.com/Notmeher/infoshield
+- **Repository**: <ANONYMOUS_REPO_URL> (anonymized for double-blind review)
 - **Latest commit at time of this document**: run `git log -1 --oneline` in the repo root
 - **Full research write-up**: [INFOSHIELD.md](INFOSHIELD.md)
 - **Auto-generated headline numbers**: [paper/deliverable/FINAL.md](paper/deliverable/FINAL.md)
